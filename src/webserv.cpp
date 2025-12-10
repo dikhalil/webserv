@@ -6,11 +6,11 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:01:37 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 00:57:52 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/11 01:06:30 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webserv.hpp"
+#include <webserv.hpp>
 
 int main (int argc, char **argv)
 {
