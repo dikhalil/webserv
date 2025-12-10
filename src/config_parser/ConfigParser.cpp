@@ -6,11 +6,11 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:37:03 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 01:02:24 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/11 01:05:01 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ConfigParser.hpp"
+#include <ConfigParser.hpp>
 
 ConfigParser::ConfigParser() {}
 

@@ -6,14 +6,14 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:33:02 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 00:46:01 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/11 01:04:51 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONFIGPARSER_HPP
 #define CONFIGPARSER_HPP
 
-#include "webserv.hpp"
+#include <webserv.hpp>
 
 struct LocationConfig
 {
