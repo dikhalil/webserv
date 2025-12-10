@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:28:07 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 00:35:28 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/11 01:01:01 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-#include "ConfigParser.hpp"
+#include <ConfigParser.hpp>
 
 
 #endif 

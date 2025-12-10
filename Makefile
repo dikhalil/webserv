@@ -3,8 +3,12 @@ NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
+# include 
+INCLUDES = -I./includes -I./src/config_parser
+
 # Source files
-SRCS = main.cpp
+SRCS = src/webserv.cpp \
+	   src/config_parser/ConfigParser.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 # Default target
@@ -16,7 +20,7 @@ $(NAME): $(OBJS)
 
 # Compile .cpp to .o
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Clean object files
 clean:
