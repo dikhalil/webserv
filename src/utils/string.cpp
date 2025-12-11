@@ -1,29 +1,25 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   webserv.hpp                                        :+:      :+:    :+:   */
+/*   string.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/11 00:28:07 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 17:54:48 by dikhalil         ###   ########.fr       */
+/*   Created: 2025/12/11 16:09:53 by dikhalil          #+#    #+#             */
+/*   Updated: 2025/12/11 21:35:20 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WEBSERV_HPP
-#define WEBSERV_HPP
+#include <webserv.hpp>
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
-#include <cstring>
-#include <stdexcept> 
-
-/* string utils */
-std::string trim(const std::string& line);
-
-#endif 
+std::string trim(const std::string& line)
+{
+    size_t first;
+    size_t last;
+    
+    first = line.find_first_not_of(" \t");
+    if (first == std::string::npos)
+        return "";
+    last = line.find_last_not_of(" \t");
+    return line.substr(first, last - first + 1);
+}

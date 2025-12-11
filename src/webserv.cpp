@@ -6,11 +6,12 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:01:37 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 01:06:30 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/11 19:55:33 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <webserv.hpp>
+#include <ConfigParser.hpp>
 
 int main (int argc, char **argv)
 {
@@ -26,10 +27,13 @@ int main (int argc, char **argv)
     try
     {
         configParser.parse(configFile);
+        std::cout << "✓ Configuration file parsed successfully!" << std::endl;
+        std::cout << "Found " << configParser.getServers().size() << " server(s)" << std::endl;
     }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "Error: " << e.what() << '\n';
+        return 1;
     }
     return 0;
 }

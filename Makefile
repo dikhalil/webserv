@@ -4,10 +4,11 @@ CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 # include 
-INCLUDES = -I./includes -I./src/config_parser
-
+INCLUDES = -I./includes -I./src/config_parser 
 # Source files
 SRCS = src/webserv.cpp \
+	   src/utils/string.cpp \
+	   src/config_parser/Tokenizer.cpp \
 	   src/config_parser/ConfigParser.cpp
 OBJS = $(SRCS:.cpp=.o)
 
