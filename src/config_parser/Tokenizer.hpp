@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:47 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 19:28:35 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/14 13:24:57 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,23 +15,13 @@
 
 #include <webserv.hpp>
 
-typedef enum eTokenType
-{
-    UNKNOWN,
-    OPEN_BRACE,
-    CLOSE_BRACE,
-    DIRECTIVE,
-    VALUE,
-    SEMICOLON   
-} TokenType;
-
 class Tokenizer
 {
     private:
         std::vector<std::string> tokens;
         std::string removeComments(const std::string& line);
         std::string trim(const std::string& line);
-        std::string addSpacesBetweenBrace(std::string& line);
+        std::string addSpacesBetweenSymbol(std::string& line);
     public:
         Tokenizer();
         ~Tokenizer();

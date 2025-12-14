@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:41 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 21:36:26 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/14 13:24:36 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,7 @@ std::string Tokenizer::trim(const std::string& line)
     return trimmedLine;
 }
 
-std::string Tokenizer::addSpacesBetweenBrace(std::string& line)
+std::string Tokenizer::addSpacesBetweenSymbol(std::string& line)
 {
     std::string modifiedLine;
     
@@ -93,7 +93,7 @@ void Tokenizer::tokenizeFile(const std::string& filename)
         cleanLine = trim(cleanLine);
         if (cleanLine.empty())
             continue;
-        cleanLine = addSpacesBetweenBrace(cleanLine);
+        cleanLine = addSpacesBetweenSymbol(cleanLine);
         std::stringstream ss(cleanLine);
         while (ss >> token)
         {

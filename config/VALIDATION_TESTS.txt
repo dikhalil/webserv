@@ -1,0 +1,82 @@
+# ============================================================================
+# VALIDATION TEST SUMMARY
+# ============================================================================
+# This file documents all validation tests performed on the config parser
+# ============================================================================
+
+# TEST 1: Empty Values - All should FAIL
+# ----------------------------------------
+# ❌ methods ;
+# ❌ root ;
+# ❌ index ;
+# ❌ server_name ;
+# ❌ upload_path ;
+# ❌ cgi_ext ;
+# ❌ cgi_bin_path ;
+# Files: test_empty_methods.conf, test_empty_root.conf, test_empty_index.conf, test_empty_server_name.conf
+
+# TEST 2: Invalid IP & Port - Should FAIL
+# ----------------------------------------
+# ❌ listen 99999; (port > 65535)
+# ❌ listen 256.1.1.1:8080; (IP octet > 255)
+# Files: test_invalid_port.conf, test_invalid_ip.conf
+
+# TEST 3: Invalid HTTP Methods - Should FAIL
+# -------------------------------------------
+# ✅ Allowed: GET, POST, DELETE
+# ❌ methods PUT; (not supported)
+# ❌ methods OPTIONS; (not supported)
+# ❌ methods INVALID_METHOD; (not supported)
+# File: test_invalid_method.conf
+
+# TEST 4: Invalid HTTP Status Codes - Should FAIL
+# ------------------------------------------------
+# ✅ Valid codes: 200,201,204,301,302,303,304,307,308,400,401,403,404,405,406,408,409,410,411,413,414,415,429,500,501,502,503,504,505
+# ❌ error_page 999 /error.html; (invalid code)
+# ❌ return 999 /somewhere; (invalid code)
+# Files: test_invalid_error_page.conf, test_invalid_return.conf
+
+# TEST 5: Invalid Boolean Values - Should FAIL
+# ----------------------------------------------
+# ❌ upload maybe; (must be on/off)
+# ❌ cgi invalid; (must be on/off)
+# ❌ autoindex yes; (must be on/off)
+# Files: test_invalid_upload.conf, test_invalid_cgi.conf, test_invalid_autoindex.conf
+
+# TEST 6: Invalid client_max_body_size - Should FAIL
+# ---------------------------------------------------
+# ❌ client_max_body_size 10X; (invalid suffix, must be K/M/G)
+# File: test_invalid_size.conf
+
+# TEST 7: Missing Required Values - Should FAIL
+# ----------------------------------------------
+# ❌ return 301; (missing URL)
+# ❌ error_page 404; (missing path)
+# Files: test_return_no_url.conf, test_error_page_no_path.conf
+
+# TEST 8: Duplicate Detection - Should FAIL
+# ------------------------------------------
+# ❌ listen 127.0.0.1:8080; listen 127.0.0.1:8080; (same IP:port)
+# ✅ listen 127.0.0.1:8080; listen 192.168.1.1:8080; (different IPs - OK)
+# ✅ location / {} location / {} (duplicate paths allowed - first match used)
+# Files: test_duplicate_listen.conf, test_multi_ip.conf, test_duplicate_location.conf
+
+# TEST 9: Valid Configuration - Should PASS
+# ------------------------------------------
+# All directives with valid values
+# File: test_all_valid.conf
+
+# ============================================================================
+# VALIDATION SUMMARY
+# ============================================================================
+# ✅ Empty value detection: WORKING
+# ✅ IP validation (0-255): WORKING
+# ✅ Port validation (1-65535): WORKING
+# ✅ HTTP method validation (GET/POST/DELETE only): WORKING
+# ✅ HTTP status code validation (specific codes only): WORKING
+# ✅ Boolean validation (on/off only): WORKING
+# ✅ client_max_body_size format validation: WORKING
+# ✅ Required values validation (return URL, error_page path): WORKING
+# ✅ Duplicate listen detection: WORKING
+# ✅ Clear error messages: WORKING
+# ============================================================================
