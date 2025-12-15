@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:01:37 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/15 20:36:46 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 21:34:07 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,35 +124,22 @@ void printServerConfig(const ServerConfig& server)
     }
 }
 
-void setDefualtSetting(ServerConfig &defaultServer)
-{    
-    if (defaultServer.listen.empty())
-        defaultServer.listen.push_back(ListenConfig("0.0.0.0", 80));
-    if (defaultServer.serverNames.empty())
-        defaultServer.serverNames.push_back("localhost");
-    if (defaultServer.index.empty())
-        defaultServer.index.push_back("index.html");
-    
+void setDefualtSetting(HttpConfig &defaultHttpConfig)
+{   
+    ServerConfig defaultServer;     
     LocationConfig defaultLocation;
     defaultLocation.path = ("/");
-    defaultLocation.root = defaultServer.root;
-    defaultLocation.index = defaultServer.index;
-    defaultLocation.clientMaxBodySize = defaultServer.clientMaxBodySize;
-    defaultLocation.autoIndex = defaultServer.autoIndex;
-    defaultLocation.errorPages = defaultServer.errorPages;
-    defaultLocation.cgiBinPath = defaultServer.cgiBinPath;
-    if (defaultLocation.methods.empty())
-        defaultLocation.methods.push_back("GET");
-    
     defaultServer.addLocation(defaultLocation);
-    
+    defaultHttpConfig.addServer(defaultServer);
+    defaultHttpConfig.applyDefaults();
     std::cout << " Default configuration loaded successfully!" << std::endl;
-    printServerConfig(defaultServer);
+    printServerConfig(defaultHttpConfig.getServers()[0]);
 }
 
 int main (int argc, char **argv)
 {
     ConfigParser configParser;
+    HttpConfig defaultHttpConfig;
     std::string configFile;
 
     if (argc > 2)
@@ -164,9 +151,8 @@ int main (int argc, char **argv)
     
     try
     {
-        ServerConfig defaultServer;
         if (argc == 1)
-            setDefualtSetting(defaultServer);
+            setDefualtSetting(defaultHttpConfig);
         else
         {
             configFile = argv[1];
