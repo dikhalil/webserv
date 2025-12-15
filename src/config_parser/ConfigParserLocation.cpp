@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/15 00:00:00 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/15 20:51:04 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 21:12:55 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,7 +117,10 @@ void ConfigParser::parseCgiExt(std::vector<std::string>& tokens, size_t& i, Loca
         
         if (tokens[i][0] != '.')
             throw std::runtime_error("CGI extension must start with '.': " + tokens[i]);
-        
+
+        if (tokens[i] == ".")
+            throw std::runtime_error("CGI extension cannot be just '.': " + tokens[i]);
+
         location.cgiExtensions.push_back(tokens[i]);
         i++;
     }

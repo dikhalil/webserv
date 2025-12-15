@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:33:28 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/15 20:31:56 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 21:15:09 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,9 @@ void ConfigValidator::validateLocationConfig(const LocationConfig& location)
 {
     if (location.path.empty())
         throw std::runtime_error("Location block must have a path");
+    
+    if (location.path[0] != '/')
+        throw std::runtime_error("Location path must start with '/': " + location.path);
     
     if (location.upload && location.uploadPath.empty())
         throw std::runtime_error("Location '" + location.path + "' has upload enabled but upload_path is missing");
