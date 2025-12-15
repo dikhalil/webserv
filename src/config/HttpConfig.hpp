@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/14 00:00:00 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/14 15:10:15 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 20:14:32 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,25 +16,26 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "ServerConfig.hpp"
+
+class ServerConfig;
 
 class HttpConfig
 {
-public:
-    std::string root;
-    std::vector<std::string> index;
-    size_t clientMaxBodySize;
-    bool autoIndex;
-    std::map<int, std::string> errorPages;
-    std::string cgiBinPath;
-    std::vector<ServerConfig> servers;
-
-    HttpConfig();
-    ~HttpConfig();
-    HttpConfig(const HttpConfig& other);
-    HttpConfig& operator=(const HttpConfig& other);
-    
-    void setDefaults();
+    private:
+        std::vector<ServerConfig> servers;   
+    public:
+        std::string root;
+        std::vector<std::string> index;
+        std::string clientMaxBodySize;
+        int autoIndex;
+        std::map<int, std::string> errorPages;
+        std::string cgiBinPath;
+        
+        HttpConfig();
+        
+        const std::vector<ServerConfig>& getServers() const;
+        void addServer(const ServerConfig& server);
+        void applyDefaults();
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/12 00:00:00 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/14 14:31:51 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 18:42:36 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,9 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "LocationConfig.hpp"
+#include "HttpConfig.hpp"
+
+class LocationConfig;
 
 struct ListenConfig
 {
@@ -27,24 +29,17 @@ struct ListenConfig
     ListenConfig(const std::string& addr, int p) : address(addr), port(p) {}
 };
 
-class ServerConfig
+class ServerConfig : public HttpConfig
 {
+    private:
+        std::vector<LocationConfig> locations;   
     public:
         std::vector<ListenConfig> listen;
         std::vector<std::string> serverNames;
-        std::string root;
-        std::vector<std::string> index;
-        size_t clientMaxBodySize;
-        std::map<int, std::string> errorPages;
-        std::string cgiBinPath;
-        std::vector<LocationConfig> locations;
-
         ServerConfig();
-        ~ServerConfig();
-        ServerConfig(const ServerConfig& other);
-        ServerConfig& operator=(const ServerConfig& other);
         
-        void setDefaults();
+        const std::vector<LocationConfig>& getLocations() const;
+        void addLocation(const LocationConfig& loc);
 };
 
 #endif

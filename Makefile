@@ -10,6 +10,10 @@ SRCS = src/webserv.cpp \
 	   src/utils/string.cpp \
 	   src/config_parser/Tokenizer.cpp \
 	   src/config_parser/ConfigParser.cpp \
+	   src/config_parser/ConfigParserBlocks.cpp \
+	   src/config_parser/ConfigParserDirectives.cpp \
+	   src/config_parser/ConfigParserServer.cpp \
+	   src/config_parser/ConfigParserLocation.cpp \
 	   src/config_parser/ConfigValidator.cpp \
 	   src/config/LocationConfig.cpp \
 	   src/config/ServerConfig.cpp \

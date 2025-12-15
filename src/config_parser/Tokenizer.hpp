@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:47 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/14 13:24:57 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 15:02:19 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,6 @@ class Tokenizer
         std::string addSpacesBetweenSymbol(std::string& line);
     public:
         Tokenizer();
-        ~Tokenizer();
-        Tokenizer(const Tokenizer& other);  
-        Tokenizer& operator=(const Tokenizer& other);
         void tokenizeFile(const std::string& filename);
         std::vector<std::string>& getTokens();
 };

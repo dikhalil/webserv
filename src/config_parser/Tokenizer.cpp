@@ -6,29 +6,13 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:41 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/14 13:24:36 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/15 15:09:18 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <Tokenizer.hpp>
 
 Tokenizer::Tokenizer() {}
-
-Tokenizer::~Tokenizer() {}
-
-Tokenizer::Tokenizer(const Tokenizer& other)
-{
-    *this = other;
-}
-
-Tokenizer& Tokenizer::operator=(const Tokenizer& other)
-{
-    if (this != &other)
-    {
-        tokens = other.tokens;
-    }
-    return *this;
-}
 
 std::string Tokenizer::removeComments(const std::string& line)
 {
@@ -75,7 +59,6 @@ std::string Tokenizer::addSpacesBetweenSymbol(std::string& line)
     }
     return modifiedLine;
 }
-
 
 void Tokenizer::tokenizeFile(const std::string& filename)
 {

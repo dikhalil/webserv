@@ -4,27 +4,17 @@
 #include "ServerConfig.hpp"
 #include "LocationConfig.hpp"
 #include "HttpConfig.hpp"
-#include <vector>
 
 class ConfigValidator
 {
-public:
-    // Server validation
-    static void validateServerConfig(ServerConfig& server);
-    static void checkDuplicateListen(const ServerConfig& server);
-    static void checkDuplicateLocations(const ServerConfig& server);
-    
-    // Cross-server validation
-    static void checkDuplicateServers(const HttpConfig& httpConfig);
-    
-    // Location validation
-    static void validateLocationConfig(const LocationConfig& location, const ServerConfig& server);
-    
-private:
-    ConfigValidator(); // Prevent instantiation
-    ~ConfigValidator();
-    ConfigValidator(const ConfigValidator& other);
-    ConfigValidator& operator=(const ConfigValidator& other);
+    private:
+        ConfigValidator();
+    public:
+        static void validateServerConfig(const ServerConfig& server);
+        static void checkDuplicateListen(const ServerConfig& server);
+        static void checkDuplicateLocations(const ServerConfig& server);        
+        static void checkDuplicateServers(const HttpConfig& httpConfig);        
+        static void validateLocationConfig(const LocationConfig& location);
 };
 
 #endif
