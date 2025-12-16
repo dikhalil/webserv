@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 00:00:00 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/16 22:18:22 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 00:38:32 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,6 @@
 #define CONFIGPARSER_NEW_HPP
 
 #include "ConfigValidator.hpp"
-#include "ConfigStructures.hpp"
-#include "Tokenizer.hpp"
 
 class ConfigParser
 {
@@ -30,28 +28,20 @@ class ConfigParser
         bool parseContext(const std::string& dir, ConfigContext& ctx);
         bool parseLocDirective(const std::string& dir, LocationConfig& loc);
         
-        void parseRoot(ConfigContext& ctx);
         void parseIndex(ConfigContext& ctx);
         void parseBodySize(ConfigContext& ctx);
         void parseAutoIndex(ConfigContext& ctx);
         void parseErrorPage(ConfigContext& ctx);
-        void parseCgiBin(ConfigContext& ctx);
         
         void parseListen(ServerConfig& srv);
         void parseServerName(ServerConfig& srv);
         
         void parseMethods(LocationConfig& loc);
         void parseReturn(LocationConfig& loc);
-        void parseUpload(LocationConfig& loc);
-        void parseUploadPath(LocationConfig& loc);
-        void parseCgi(LocationConfig& loc);
         void parseCgiExt(LocationConfig& loc);
         
         void applyDefaults();
-        void applyServerDefaults(ServerConfig& srv);
-        void applyLocDefaults(LocationConfig& loc);
         
-        // Helper functions for parsing simple directives
         void parseSimpleString(const std::string& directive, std::string& target);
         void parseSimpleBool(const std::string& directive, bool& target);
         

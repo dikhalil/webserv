@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/16 20:44:25 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 00:38:19 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,3 +65,31 @@ ServerConfig::ServerConfig()
 }
 
 HttpConfig::HttpConfig() {}
+
+void LocationConfig::applyDefaults(std::vector<LocationConfig> &loc, ConfigContext &ctx)
+{
+    for (size_t i = 0; i < loc.size(); i++)
+    {
+        loc[0].ctx.inheritFrom(ctx);
+        loc[0].ctx.applyDefaults();
+        
+        if (loc[i].allowedMethods.empty())
+        {
+            loc[i].allowedMethods.push_back("GET");
+            loc[i].allowedMethods.push_back("POST");
+            loc[i].allowedMethods.push_back("DELETE");
+        }
+    }
+}
+
+void ServerConfig::applyDefaults(std::vector<ServerConfig> &srv, ConfigContext &ctx)
+{
+    for (size_t i = 0; i < srv.size(); i++)
+    {
+        srv[i].ctx.inheritFrom(ctx);
+        srv[i].ctx.applyDefaults();
+        std::vector<LocationConfig> &locs = srv[i].locations;
+        
+        locs[0].applyDefaults(locs, srv[i].ctx);
+    }
+}

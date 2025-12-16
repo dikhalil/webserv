@@ -4,7 +4,7 @@ CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 # Include directories
-INCLUDES = -I./includes -I./src/config_parser -I./src/config
+INCLUDES = -I./includes -I./src/config_parser -I./src/config 
 
 # Source files
 SRCS = src/webserv.cpp \

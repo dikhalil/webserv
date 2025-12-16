@@ -6,10 +6,11 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:41 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/16 21:30:18 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 00:38:47 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "ConfigValidator.hpp"
 #include "Tokenizer.hpp"
 
 Tokenizer::Tokenizer() : pos(0) {}
@@ -104,11 +105,7 @@ void Tokenizer::expect(const std::string& expected)
     std::string token = consume();
     if (token != expected)
     {
-        if (expected == ";" && (token == "location" || token == "server" || 
-            token == "root" || token == "index" || token == "listen" || 
-            token == "server_name" || token == "methods" || token == "autoindex" ||
-            token == "error_page" || token == "client_max_body_size" || 
-            token == "{" || token == "}"))
+        if (expected == ";" && (token == "}" || token == "{" || ConfigValidator::isReserved(token)))
         {
             throw std::runtime_error("Missing semicolon ';' before '" + token + "'");
         }

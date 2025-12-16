@@ -5,18 +5,19 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/16 20:33:37 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/16 20:55:57 by dikhalil         ###   ########.fr       */
+/*   Created: 2025/12/16 23:47:58 by dikhalil          #+#    #+#             */
+/*   Updated: 2025/12/17 00:38:36 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigValidator.hpp"
-#include "Tokenizer.hpp"
 
 void ConfigValidator::checkValue(const Tokenizer& tokenizer, const std::string& directive)
 {
     if (!tokenizer.hasMore() || ConfigValidator::isBlock(tokenizer.peek()))
         throw std::runtime_error(directive + " directive requires a value (missing value before ';')");
+    if (isReserved(tokenizer.peek()))
+        throw std::runtime_error("Cannot use directive '" + tokenizer.peek() + "' as value for " + directive);
 }
 
 bool ConfigValidator::isDuplicate(const std::vector<std::string>& list, const std::string& value)
@@ -29,19 +30,19 @@ bool ConfigValidator::isDuplicate(const std::vector<std::string>& list, const st
     return false;
 }
 
-std::string ConfigValidator::getValidValue(const Tokenizer& tokenizer, const std::string& directive)
+bool ConfigValidator::isDuplicateListen(const std::vector<ListenConfig>& list, const ListenConfig& conf)
 {
-    checkValue(tokenizer, directive);
-    std::string val = tokenizer.peek();
-    if (isReserved(val))
-        throw std::runtime_error("Cannot use directive '" + val + "' as value for " + directive);
-    return val;
+    for (size_t i = 0; i < list.size(); i++)
+    {
+        if (list[i].host == conf.host && list[i].port == conf.port)
+            return true;
+    }
+    return false;
 }
 
 bool ConfigValidator::isValidMethod(const std::string& method)
 {
-    return (method == "GET" || method == "POST" || method == "DELETE" ||
-            method == "PUT" || method == "HEAD");
+    return (method == "GET" || method == "POST" || method == "DELETE");
 }
 
 bool ConfigValidator::isValidStatus(int code)
@@ -93,50 +94,47 @@ bool ConfigValidator::isDigits(const std::string& str)
 
 bool ConfigValidator::isValidIP(const std::string& ip)
 {
-    if (ip.empty())
-        return false;
-    
     size_t dots = 0;
     size_t start = 0;
-    
+
+    if (ip.empty())
+        return false;
     for (size_t i = 0; i <= ip.length(); i++)
     {
         if (i == ip.length() || ip[i] == '.')
         {
             if (i == start)
                 return false;
-            
             std::string octet = ip.substr(start, i - start);
             
-            // Validate octet inline
             if (octet.length() > 3 || !isDigits(octet))
                 return false;
             int val = std::atoi(octet.c_str());
             if (val < 0 || val > 255)
                 return false;
-            
             if (i < ip.length())
                 dots++;
             start = i + 1;
         }
     }
-    
     return dots == 3;
 }
 
 bool ConfigValidator::isValidPort(const std::string& port)
 {
-    return isDigits(port);
+    if (!isDigits(port))
+        return false;
+    
+    int p = std::atoi(port.c_str());
+    return (p > 0 && p <= 65535);
 }
 
 void ConfigValidator::validateLocation(const LocationConfig& loc)
 {
     if (loc.path.empty())
         throw std::runtime_error("Location must have a path");
-    
     if (loc.uploadEnabled && loc.uploadPath.empty())
         throw std::runtime_error("Location with upload enabled must have upload_path");
-    
     if (loc.cgiEnabled && loc.cgiExtensions.empty())
         throw std::runtime_error("Location with cgi enabled must have cgi_ext");
 }
@@ -221,9 +219,7 @@ void ConfigValidator::validate(const HttpConfig& config)
 {
     if (config.servers.empty())
         throw std::runtime_error("Configuration must have at least one server");
-    
     for (size_t i = 0; i < config.servers.size(); i++)
         validateServer(config.servers[i]);
-    
     checkDuplicates(config);
 }
