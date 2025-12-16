@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:28:07 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/11 17:54:48 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/16 20:43:20 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@
 #include <cstring>
 #include <stdexcept> 
 
-/* string utils */
-std::string trim(const std::string& line);
+
 
 #endif 

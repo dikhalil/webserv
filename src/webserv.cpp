@@ -5,15 +5,12 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/11 00:01:37 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/15 21:34:07 by dikhalil         ###   ########.fr       */
+/*   Created: 2025/12/16 00:00:00 by dikhalil          #+#    #+#             */
+/*   Updated: 2025/12/16 20:47:08 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <webserv.hpp>
-#include <ConfigParser.hpp>
-#include "../config/ServerConfig.hpp"
-#include "../config/LocationConfig.hpp"
+#include "ConfigParser.hpp"
 
 static void printVector(const std::vector<std::string>& vec, const std::string& emptyMsg = "(none)")
 {
@@ -30,149 +27,190 @@ static void printVector(const std::vector<std::string>& vec, const std::string& 
     }
 }
 
-void printServerConfig(const ServerConfig& server)
+static void printContext(const ConfigContext& ctx, const std::string& indent)
 {
-    std::cout << "  Server Names: ";
-    printVector(server.serverNames);
+    std::cout << indent << "Root: " << ctx.root << std::endl;
+    
+    std::cout << indent << "Index: ";
+    printVector(ctx.index);
     std::cout << std::endl;
+    
+    std::cout << indent << "Client Max Body Size: ";
+    if (ctx.clientMaxBodySize == "0")
+        std::cout << "unlimited";
+    else
+        std::cout << ctx.clientMaxBodySize << " bytes";
+    std::cout << std::endl;
+    
+    std::cout << indent << "Autoindex: " << (ctx.autoIndex == 1 ? "on" : "off") << std::endl;
+    
+    if (!ctx.errorPages.empty())
+    {
+        std::cout << indent << "Error Pages:" << std::endl;
+        for (std::map<int, std::string>::const_iterator it = ctx.errorPages.begin();
+             it != ctx.errorPages.end(); ++it)
+        {
+            std::cout << indent << "  " << it->first << " -> " << it->second << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << indent << "Error Pages: (none)" << std::endl;
+    }
+}
 
+static void printLocationConfig(const LocationConfig& loc, const std::string& indent)
+{
+    std::cout << indent << "[Location: " << loc.path << "]" << std::endl;
+    
+    printContext(loc.ctx, indent + "  ");
+    
+    std::cout << indent << "  Allowed Methods: ";
+    printVector(loc.allowedMethods, "GET");
+    std::cout << std::endl;
+    
+    if (loc.redirectCode != 0)
+    {
+        std::cout << indent << "  Return: " << loc.redirectCode << " " 
+                  << loc.redirectUrl << std::endl;
+    }
+    else
+    {
+        std::cout << indent << "  Return: (none)" << std::endl;
+    }
+    
+    if (loc.uploadEnabled)
+    {
+        std::cout << indent << "  Upload: enabled (path: " << loc.uploadPath << ")" << std::endl;
+    }
+    else
+    {
+        std::cout << indent << "  Upload: disabled" << std::endl;
+    }
+    
+    if (loc.cgiEnabled)
+    {
+        std::cout << indent << "  CGI: enabled (extensions: ";
+        printVector(loc.cgiExtensions);
+        std::cout << ")" << std::endl;
+    }
+    else
+    {
+        std::cout << indent << "  CGI: disabled" << std::endl;
+    }
+}
+
+static void printServerConfig(const ServerConfig& server, size_t serverNum)
+{
+    std::cout << "--- Server #" << serverNum << " ---" << std::endl;
+    
     std::cout << "  Listen: ";
     for (size_t i = 0; i < server.listen.size(); ++i)
     {
         if (i > 0)
             std::cout << ", ";
-        std::cout << server.listen[i].address << ":" << server.listen[i].port;
+        std::cout << server.listen[i].host << ":" << server.listen[i].port;
     }
     std::cout << std::endl;
-
-    std::cout << "  Root: " << server.root << std::endl;
-    std::cout << "  Index: ";
-    printVector(server.index);
-    std::cout << std::endl;
-
-    if (server.clientMaxBodySize == "0")
-        std::cout << "  Client Max Body Size: unlimited" << std::endl;
-    else
-        std::cout << "  Client Max Body Size: " << server.clientMaxBodySize << " bytes" << std::endl;
-    std::cout << "  Autoindex: " << (server.autoIndex == 1 ? "on" : "off") << std::endl;
-    std::cout << "  CGI Bin Path: " << (server.cgiBinPath.empty() ? "(none)" : server.cgiBinPath) << std::endl;
-
-    if (!server.errorPages.empty())
-    {
-        std::cout << "  Error Pages:" << std::endl;
-        for (std::map<int, std::string>::const_iterator it = server.errorPages.begin();
-             it != server.errorPages.end(); ++it)
-        {
-            std::cout << "    " << it->first << " -> " << it->second << std::endl;
-        }
-    }
-    else
-        std::cout << "  Error Pages: (none)" << std::endl;
-
-    if (!server.getLocations().empty())
-    {
-        std::cout << "  Locations (" << server.getLocations().size() << "):" << std::endl;
-        for (size_t i = 0; i < server.getLocations().size(); ++i)
-        {
-            const LocationConfig& loc = server.getLocations()[i];
-            std::cout << "    [" << loc.path << "]" << std::endl;
-            std::cout << "      Root: " << loc.root << std::endl;
-            std::cout << "      Index: ";
-            printVector(loc.index);
-            std::cout << std::endl;
-            if (loc.clientMaxBodySize == "0")
-                std::cout << "      Client Max Body Size: unlimited" << std::endl;
-            else
-                std::cout << "      Client Max Body Size: " << loc.clientMaxBodySize << " bytes" << std::endl;
-            std::cout << "      Autoindex: " << (loc.autoIndex == 1 ? "on" : "off") << std::endl;
-            std::cout << "      CGI Bin Path: " << (loc.cgiBinPath.empty() ? "(none)" : loc.cgiBinPath) << std::endl;
-            std::cout << "      Methods: ";
-            printVector(loc.methods);
-            std::cout << std::endl;
-            
-            if (!loc.errorPages.empty())
-            {
-                std::cout << "      Error Pages:" << std::endl;
-                for (std::map<int, std::string>::const_iterator it = loc.errorPages.begin();
-                     it != loc.errorPages.end(); ++it)
-                {
-                    std::cout << "        " << it->first << " -> " << it->second << std::endl;
-                }
-            }
-            else
-                std::cout << "      Error Pages: (none)" << std::endl;
-            
-            if (loc.upload)
-                std::cout << "      Upload: on (path: " << loc.uploadPath << ")" << std::endl;
-            else
-                std::cout << "      Upload: off" << std::endl;
-            
-            if (loc.cgi)
-            {
-                std::cout << "      CGI: on (ext: ";
-                printVector(loc.cgiExtensions);
-                std::cout << ")" << std::endl;
-            }
-            else
-                std::cout << "      CGI: off" << std::endl;
-            
-            if (loc.redirectCode != 0)
-                std::cout << "      Return: " << loc.redirectCode << " " << loc.redirectUrl << std::endl;
-            else
-                std::cout << "      Return: (none)" << std::endl;
-        }
-    }
-}
-
-void setDefualtSetting(HttpConfig &defaultHttpConfig)
-{   
-    ServerConfig defaultServer;     
-    LocationConfig defaultLocation;
-    defaultLocation.path = ("/");
-    defaultServer.addLocation(defaultLocation);
-    defaultHttpConfig.addServer(defaultServer);
-    defaultHttpConfig.applyDefaults();
-    std::cout << " Default configuration loaded successfully!" << std::endl;
-    printServerConfig(defaultHttpConfig.getServers()[0]);
-}
-
-int main (int argc, char **argv)
-{
-    ConfigParser configParser;
-    HttpConfig defaultHttpConfig;
-    std::string configFile;
-
-    if (argc > 2)
-    {
-        std::cerr << "Error: Too many arguments provided!" << std::endl;
-        std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
-        return 1;
-    }
     
+    std::cout << "  Server Names: ";
+    printVector(server.serverNames, "(none)");
+    std::cout << std::endl;
+    
+    printContext(server.ctx, "  ");
+    
+    if (!server.locations.empty())
+    {
+        std::cout << "  Locations (" << server.locations.size() << "):" << std::endl;
+        for (size_t i = 0; i < server.locations.size(); ++i)
+        {
+            printLocationConfig(server.locations[i], "    ");
+        }
+    }
+    else
+    {
+        std::cout << "  Locations: (none)" << std::endl;
+    }
+}
+
+static void printHttpConfig(const HttpConfig& config)
+{
+    std::cout << "\n=== HTTP Configuration ===" << std::endl;
+    
+    std::cout << "\nHTTP-Level Directives:" << std::endl;
+    printContext(config.ctx, "  ");
+    
+    std::cout << "\nServers (" << config.servers.size() << "):" << std::endl;
+    for (size_t i = 0; i < config.servers.size(); ++i)
+    {
+        std::cout << std::endl;
+        printServerConfig(config.servers[i], i + 1);
+    }
+}
+
+static void createDefaultConfig(HttpConfig& config)
+{
+    std::cout << "No config file provided. Using default configuration..." << std::endl;
+    
+    config.ctx.applyDefaults();
+    
+    ServerConfig defaultServer;
+    
+    defaultServer.ctx.inheritFrom(config.ctx);
+    defaultServer.ctx.applyDefaults();
+    defaultServer.serverNames.push_back("localhost");
+    
+    LocationConfig defaultLocation;
+    defaultLocation.path = "/";
+    defaultLocation.ctx.inheritFrom(defaultServer.ctx);
+    defaultLocation.ctx.applyDefaults();
+    
+    defaultServer.locations.push_back(defaultLocation);
+    config.servers.push_back(defaultServer);
+    
+    std::cout << "Default configuration created successfully!" << std::endl;
+}
+
+
+int main(int argc, char** argv)
+{
     try
     {
+        if (argc > 2)
+        {
+            std::cerr << "Error: Too many arguments!" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
+            return 1;
+        }
+        
+        HttpConfig config;
+        
         if (argc == 1)
-            setDefualtSetting(defaultHttpConfig);
+        {
+            createDefaultConfig(config);
+        }
         else
         {
-            configFile = argv[1];
-            configParser.parse(configFile);
-            std::cout << "Found " << configParser.getServers().size() << " server(s)" << std::endl;
-            std::cout << std::endl;
+            std::string configFile = argv[1];
             
-            const std::vector<ServerConfig>& servers = configParser.getServers();
-            for (size_t i = 0; i < servers.size(); ++i)
-            {
-                std::cout << "--- Server #" << (i + 1) << " ---"<< std::endl;
-                printServerConfig(servers[i]);
-                std::cout << std::endl;
-            }
+            std::cout << "Parsing config file: " << configFile << std::endl;
+            
+            ConfigParser parser;
+            parser.parse(configFile);
+            config = parser.getConfig();
+            
+            std::cout << "✓ Config file parsed successfully!" << std::endl;
         }
+        
+        printHttpConfig(config);
+        
+        std::cout << "\n=== Configuration loaded successfully! ===" << std::endl;
+        
+        return 0;
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        std::cerr << "Error: " << e.what() << '\n';
+        std::cerr << "\n✗ Error: " << e.what() << std::endl;
         return 1;
     }
-    return 0;
 }

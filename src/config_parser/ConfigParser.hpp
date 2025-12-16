@@ -5,49 +5,66 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/11 00:33:02 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/15 20:10:47 by dikhalil         ###   ########.fr       */
+/*   Created: 2025/12/16 00:00:00 by dikhalil          #+#    #+#             */
+/*   Updated: 2025/12/16 22:18:22 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CONFIGPARSER_HPP
-#define CONFIGPARSER_HPP
+#ifndef CONFIGPARSER_NEW_HPP
+#define CONFIGPARSER_NEW_HPP
 
-#include <Tokenizer.hpp>
-#include <HttpConfig.hpp>
-#include <ConfigValidator.hpp>
+#include "ConfigValidator.hpp"
+#include "ConfigStructures.hpp"
+#include "Tokenizer.hpp"
 
 class ConfigParser
 {
     private:
+        HttpConfig config;
         Tokenizer tokenizer;
-        HttpConfig httpConfig;
+        ConfigValidator validator;
         
-        void parseHttpBlock(std::vector<std::string>& tokens, size_t& i);
-        void parseServerBlock(std::vector<std::string>& tokens, size_t& i, ServerConfig& server);
-        void parseLocationBlock(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseIndex(std::vector<std::string>& tokens, size_t& i, std::vector<std::string>& target);
-        void parseClientMaxBodySize(std::vector<std::string>& tokens, size_t& i, std::string& target);
-        void parseErrorPage(std::vector<std::string>& tokens, size_t& i, std::map<int, std::string>& target);
-        void parseRoot(std::vector<std::string>& tokens, size_t& i, std::string& target);
-        void parseAutoIndex(std::vector<std::string>& tokens, size_t& i, int& target);
-        void parseCgiBinPath(std::vector<std::string>& tokens, size_t& i, std::string& target);
-        void parseListen(std::vector<std::string>& tokens, size_t& i, ServerConfig& server);
-        void parseServerName(std::vector<std::string>& tokens, size_t& i, ServerConfig& server);
-        void parseMethods(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseUpload(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseUploadPath(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseCgi(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseCgiExt(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        void parseReturn(std::vector<std::string>& tokens, size_t& i, LocationConfig& location);
-        bool isValidHttpStatusCode(int code);
-        bool isDirective(const std::string& token);
-        void validateAndApplyDefaults();
+        void parseHttp();
+        void parseServer();
+        void parseLocation(ServerConfig& server);
+        bool parseContext(const std::string& dir, ConfigContext& ctx);
+        bool parseLocDirective(const std::string& dir, LocationConfig& loc);
+        
+        void parseRoot(ConfigContext& ctx);
+        void parseIndex(ConfigContext& ctx);
+        void parseBodySize(ConfigContext& ctx);
+        void parseAutoIndex(ConfigContext& ctx);
+        void parseErrorPage(ConfigContext& ctx);
+        void parseCgiBin(ConfigContext& ctx);
+        
+        void parseListen(ServerConfig& srv);
+        void parseServerName(ServerConfig& srv);
+        
+        void parseMethods(LocationConfig& loc);
+        void parseReturn(LocationConfig& loc);
+        void parseUpload(LocationConfig& loc);
+        void parseUploadPath(LocationConfig& loc);
+        void parseCgi(LocationConfig& loc);
+        void parseCgiExt(LocationConfig& loc);
+        
+        void applyDefaults();
+        void applyServerDefaults(ServerConfig& srv);
+        void applyLocDefaults(LocationConfig& loc);
+        
+        // Helper functions for parsing simple directives
+        void parseSimpleString(const std::string& directive, std::string& target);
+        void parseSimpleBool(const std::string& directive, bool& target);
+        
+        std::string getValue(const std::string& directive);
+        int parsePort(const std::string& port) const;
+        long long parseSize(const std::string& val) const;
+        bool parseBool(const std::string& val, const std::string& directive) const;
+        ListenConfig parseListen(const std::string& val) const;
+        
     public:
         ConfigParser();
         void parse(const std::string& filename);
-        const HttpConfig& getHttpConfig() const;
-        const std::vector<ServerConfig>& getServers() const;
+        const HttpConfig& getConfig() const;
 };
 
 #endif

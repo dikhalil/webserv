@@ -1,29 +1,24 @@
 # Compiler and flags
-NAME = webserv 
+NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-# include 
+# Include directories
 INCLUDES = -I./includes -I./src/config_parser -I./src/config
+
 # Source files
 SRCS = src/webserv.cpp \
-	   src/utils/string.cpp \
-	   src/config_parser/Tokenizer.cpp \
-	   src/config_parser/ConfigParser.cpp \
-	   src/config_parser/ConfigParserBlocks.cpp \
-	   src/config_parser/ConfigParserDirectives.cpp \
-	   src/config_parser/ConfigParserServer.cpp \
-	   src/config_parser/ConfigParserLocation.cpp \
-	   src/config_parser/ConfigValidator.cpp \
-	   src/config/LocationConfig.cpp \
-	   src/config/ServerConfig.cpp \
-	   src/config/HttpConfig.cpp
+       src/config_parser/Tokenizer.cpp \
+       src/config_parser/ConfigValidator.cpp \
+       src/config_parser/ConfigParser.cpp \
+       src/config/ConfigStructures.cpp
+
 OBJS = $(SRCS:.cpp=.o)
 
 # Default target
 all: $(NAME)
 
-# Build binary
+# Build
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
 
