@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 00:38:19 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 18:59:54 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ void ConfigContext::inheritFrom(const ConfigContext& parent)
 void ConfigContext::applyDefaults()
 {
     if (root.empty())
-        root = "/var/www/html";
+        root = "./www";
     if (index.empty())
         index.push_back("index.html");
     if (clientMaxBodySize.empty())
@@ -56,7 +56,12 @@ ListenConfig::ListenConfig() : port(8080)
     host = "0.0.0.0";
 }
 
-LocationConfig::LocationConfig() : redirectCode(0), uploadEnabled(false), cgiEnabled(false) {}
+bool ListenConfig::operator==(const ListenConfig& other) const
+{
+    return (host == other.host && port == other.port);
+}
+
+LocationConfig::LocationConfig() : redirectCode(0), uploadEnabled(0), cgiEnabled(0) {}
 
 ServerConfig::ServerConfig()
 {
@@ -64,32 +69,40 @@ ServerConfig::ServerConfig()
     listen.push_back(defaultListen);
 }
 
+
 HttpConfig::HttpConfig() {}
 
-void LocationConfig::applyDefaults(std::vector<LocationConfig> &loc, ConfigContext &ctx)
+void LocationConfig::applyDefaults()
 {
-    for (size_t i = 0; i < loc.size(); i++)
+    ctx.applyDefaults();
+    
+    if (allowedMethods.empty())
     {
-        loc[0].ctx.inheritFrom(ctx);
-        loc[0].ctx.applyDefaults();
-        
-        if (loc[i].allowedMethods.empty())
-        {
-            loc[i].allowedMethods.push_back("GET");
-            loc[i].allowedMethods.push_back("POST");
-            loc[i].allowedMethods.push_back("DELETE");
-        }
+        allowedMethods.push_back("GET");
+        allowedMethods.push_back("POST");
+        allowedMethods.push_back("DELETE");
     }
 }
 
-void ServerConfig::applyDefaults(std::vector<ServerConfig> &srv, ConfigContext &ctx)
+void ServerConfig::applyDefaults()
 {
-    for (size_t i = 0; i < srv.size(); i++)
+    ctx.applyDefaults();
+    
+    for (size_t i = 0; i < locations.size(); i++)
     {
-        srv[i].ctx.inheritFrom(ctx);
-        srv[i].ctx.applyDefaults();
-        std::vector<LocationConfig> &locs = srv[i].locations;
-        
-        locs[0].applyDefaults(locs, srv[i].ctx);
+        locations[i].ctx.inheritFrom(ctx);
+        locations[i].applyDefaults();
     }
+    if (serverNames.empty())
+        serverNames.push_back("localhost");
+}
+
+void HttpConfig::createDefaultConfig()
+{
+    ServerConfig defaultServer;
+    LocationConfig defaultLocation;
+    
+    defaultServer.locations.push_back(defaultLocation);
+    defaultServer.applyDefaults();
+    servers.push_back(defaultServer);
 }

@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:38:58 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 00:38:24 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 18:59:54 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,7 @@ struct ListenConfig
     int port;
     
     ListenConfig();
+    bool operator==(const ListenConfig& other) const;
 };
 
 struct LocationConfig
@@ -44,13 +45,13 @@ struct LocationConfig
     std::vector<std::string> allowedMethods;
     int redirectCode;
     std::string redirectUrl;
-    bool uploadEnabled;
+    int uploadEnabled;
     std::string uploadPath;
-    bool cgiEnabled;
+    int cgiEnabled;
     std::vector<std::string> cgiExtensions;
     
     LocationConfig();
-    void applyDefaults(std::vector<LocationConfig> &loc, ConfigContext &ctx);
+    void applyDefaults();
 };
 
 struct ServerConfig
@@ -61,7 +62,7 @@ struct ServerConfig
     std::vector<LocationConfig> locations;
     
     ServerConfig();
-    void applyDefaults(std::vector<ServerConfig> &srv, ConfigContext& ctx);
+    void applyDefaults();
 };
 
 struct HttpConfig
@@ -70,6 +71,7 @@ struct HttpConfig
     std::vector<ServerConfig> servers;
     
     HttpConfig();
+    void createDefaultConfig();
 };
 
 #endif

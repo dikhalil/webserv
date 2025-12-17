@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:36:34 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 00:38:28 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 19:16:53 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,18 +54,16 @@ void ConfigParser::parse(const std::string& filename)
 
 bool ConfigParser::parseContext(const std::string& directive, ConfigContext& ctx)
 {
-    if (directive == "root")
-        parseSimpleString("root", ctx.root);
+    if (directive == "root" || directive == "cgi_bin_path")
+        parseSimpleString(directive, (directive == "root" ? ctx.root : ctx.cgiBinPath));
     else if (directive == "index")
-        parseIndex(ctx);
+        parseStringList("index", ctx.index);
     else if (directive == "client_max_body_size")
         parseBodySize(ctx);
     else if (directive == "autoindex")
-        parseAutoIndex(ctx);
+        parseSimpleBool("autoindex", ctx.autoIndex);
     else if (directive == "error_page")
         parseErrorPage(ctx);
-    else if (directive == "cgi_bin_path")
-        parseSimpleString("cgi_bin_path", ctx.cgiBinPath);
     else
         return false;
     return true;
@@ -107,7 +105,7 @@ void ConfigParser::parseServer()
         if (directive == "listen")
             parseListen(server);
         else if (directive == "server_name")
-            parseServerName(server);
+            parseStringList("server_name", server.serverNames);
         else if (directive == "location")
             parseLocation(server);
         else if (!parseContext(directive, server.ctx))
@@ -115,25 +113,6 @@ void ConfigParser::parseServer()
     }
     tokenizer.expect("}");
     config.servers.push_back(server);
-}
-
-bool ConfigParser::parseLocDirective(const std::string& directive, LocationConfig& location)
-{
-    if (directive == "methods")
-        parseMethods(location);
-    else if (directive == "return")
-        parseReturn(location);
-    else if (directive == "upload")
-        parseSimpleBool("upload", location.uploadEnabled);
-    else if (directive == "upload_path")
-        parseSimpleString("upload_path", location.uploadPath);
-    else if (directive == "cgi")
-        parseSimpleBool("cgi", location.cgiEnabled);
-    else if (directive == "cgi_ext")
-        parseCgiExt(location);
-    else
-        return false;
-    return true;
 }
 
 void ConfigParser::parseLocation(ServerConfig& server)
@@ -161,24 +140,20 @@ void ConfigParser::parseLocation(ServerConfig& server)
     server.locations.push_back(location);
 }
 
-std::string ConfigParser::getValue(const std::string& directive)
+bool ConfigParser::parseLocDirective(const std::string& directive, LocationConfig& location)
 {
-    ConfigValidator::checkValue(tokenizer, directive);
-    std::string val = tokenizer.consume();
-    return val;
-}
-
-void ConfigParser::parseIndex(ConfigContext& ctx)
-{
-    tokenizer.consume();
-    ConfigValidator::checkValue(tokenizer, "index");
-    ctx.index.clear();
-    while (tokenizer.hasMore() && tokenizer.peek() != ";")
-    {
-        std::string val = getValue("index");
-        ctx.index.push_back(val);
-    }
-    tokenizer.expect(";");
+    if (directive == "methods" || directive == "cgi_ext")
+        parseStringList(directive, (directive == "methods" ? location.allowedMethods : location.cgiExtensions), 
+                        (directive == "methods" ? ConfigValidator::validateMethod : NULL));
+    else if (directive == "return")
+        parseReturn(location);
+    else if (directive == "upload" || directive == "cgi")
+        parseSimpleBool(directive, (directive == "upload" ? location.uploadEnabled : location.cgiEnabled));
+    else if (directive == "upload_path")
+        parseSimpleString("upload_path", location.uploadPath);
+    else
+        return false;
+    return true;
 }
 
 void ConfigParser::parseBodySize(ConfigContext& ctx)
@@ -190,14 +165,6 @@ void ConfigParser::parseBodySize(ConfigContext& ctx)
     
     oss << size;
     ctx.clientMaxBodySize = oss.str();
-    tokenizer.expect(";");
-}
-
-void ConfigParser::parseAutoIndex(ConfigContext& ctx)
-{
-    tokenizer.consume();
-    std::string val = getValue("autoindex");
-    ctx.autoIndex = parseBool(val, "autoindex") ? 1 : 0;
     tokenizer.expect(";");
 }
 
@@ -217,7 +184,8 @@ void ConfigParser::parseErrorPage(ConfigContext& ctx)
             int code = std::atoi(tok.c_str());
             if (!validator.isValidStatus(code))
                 throw std::runtime_error("Invalid HTTP status code: " + tok);
-            codes.push_back(code);
+            if (!ConfigValidator::isDuplicate(codes, code))
+                codes.push_back(code);
             tokenizer.consume();
         }
         else
@@ -245,40 +213,8 @@ void ConfigParser::parseListen(ServerConfig& server)
         server.listen[0].host == "0.0.0.0" && 
         server.listen[0].port == 8080)
         server.listen.clear();
-    if (!ConfigValidator::isDuplicateListen(server.listen, conf))
+    if (!ConfigValidator::isDuplicate(server.listen, conf))
         server.listen.push_back(conf);
-    
-    tokenizer.expect(";");
-}
-
-void ConfigParser::parseServerName(ServerConfig& server)
-{
-    tokenizer.consume();
-    ConfigValidator::checkValue(tokenizer, "server_name");
-    server.serverNames.clear();
-    while (tokenizer.hasMore() && tokenizer.peek() != ";")
-    {
-        std::string name = getValue("server_name");
-        server.serverNames.push_back(name);
-    }
-    tokenizer.expect(";");
-}
-
-void ConfigParser::parseMethods(LocationConfig& location)
-{
-    tokenizer.consume();
-    ConfigValidator::checkValue(tokenizer, "methods");
-    location.allowedMethods.clear();
-    while (tokenizer.hasMore() && tokenizer.peek() != ";")
-    {
-        std::string method = tokenizer.consume();
-        if (ConfigValidator::isReserved(method))
-            throw std::runtime_error("Cannot use directive '" + method + "' as HTTP method");
-        if (!validator.isValidMethod(method))
-            throw std::runtime_error("Invalid HTTP method: " + method);
-        if (!ConfigValidator::isDuplicate(location.allowedMethods, method))
-            location.allowedMethods.push_back(method);
-    }
     tokenizer.expect(";");
 }
 
@@ -298,6 +234,27 @@ void ConfigParser::parseReturn(LocationConfig& location)
     tokenizer.expect(";");
 }
 
+void ConfigParser::parseStringList(const std::string& directive, std::vector<std::string>& target, 
+                void (*validate)(const std::string&))
+{
+    tokenizer.consume();
+    ConfigValidator::checkValue(tokenizer, directive);
+    target.clear();
+    while (tokenizer.hasMore() && tokenizer.peek() != ";")
+    {
+        std::string next = tokenizer.peek();
+        if (next == "}" || next == "{" || ConfigValidator::isReserved(next))
+            break;
+        std::string val = getValue(directive);
+        
+        if (validate != NULL)
+            validate(val);
+        if (!ConfigValidator::isDuplicate(target, val))
+            target.push_back(val);
+    }
+    tokenizer.expect(";");
+}
+
 void ConfigParser::parseSimpleString(const std::string& directive, std::string& target)
 {
     tokenizer.consume();
@@ -305,36 +262,12 @@ void ConfigParser::parseSimpleString(const std::string& directive, std::string& 
     tokenizer.expect(";");
 }
 
-void ConfigParser::parseSimpleBool(const std::string& directive, bool& target)
+void ConfigParser::parseSimpleBool(const std::string& directive, int& target)
 {
     tokenizer.consume();
     std::string val = getValue(directive);
-    target = parseBool(val, directive);
+    target = parseBool(val, directive) ? 1 : 0;
     tokenizer.expect(";");
-}
-
-void ConfigParser::parseCgiExt(LocationConfig& location)
-{
-    tokenizer.consume();
-    ConfigValidator::checkValue(tokenizer, "cgi_ext");
-    location.cgiExtensions.clear();
-    while (tokenizer.hasMore() && tokenizer.peek() != ";")
-    {
-        std::string ext = getValue("cgi_ext");
-        location.cgiExtensions.push_back(ext);
-    }
-    tokenizer.expect(";");
-}
-
-void ConfigParser::applyDefaults()
-{
-    std::vector<ServerConfig> &servers = config.servers;
-    servers[0].applyDefaults(config.servers, config.ctx);
-}
-
-const HttpConfig& ConfigParser::getConfig() const
-{
-    return config;
 }
 
 int ConfigParser::parsePort(const std::string& port) const
@@ -404,4 +337,27 @@ ListenConfig ConfigParser::parseListen(const std::string& val) const
     else
         throw std::runtime_error("Invalid listen directive: " + val);
     return conf;
+}
+
+std::string ConfigParser::getValue(const std::string& directive)
+{
+    ConfigValidator::checkValue(tokenizer, directive);
+    std::string val = tokenizer.consume();
+    return val;
+}
+
+const HttpConfig& ConfigParser::getConfig() const
+{
+    return config;
+}
+
+void ConfigParser::applyDefaults()
+{
+    config.ctx.applyDefaults();
+    
+    for (size_t i = 0; i < config.servers.size(); i++)
+    {
+        config.servers[i].ctx.inheritFrom(config.ctx);
+        config.servers[i].applyDefaults();
+    }
 }
