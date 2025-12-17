@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:33:22 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 18:58:57 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/17 23:47:01 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,16 +29,13 @@ class ConfigValidator
         static bool isDigits(const std::string& str);
         static void checkValue(const Tokenizer& tokenizer, const std::string& directive);
         static void validateMethod(const std::string& method);
+        static bool isValidString(const std::string& value, const std::string& allowedChars);
+        static void validateContext(const ConfigContext& ctx);
         
         template<typename T>
         static bool isDuplicate(const std::vector<T>& list, const T& value)
         {
-            for (size_t i = 0; i < list.size(); i++)
-            {
-                if (list[i] == value)
-                    return true;
-            }
-            return false;
+            return std::find(list.begin(), list.end(), value) != list.end();
         }
         
         template<typename T>
@@ -46,11 +43,8 @@ class ConfigValidator
         {
             for (size_t i = 0; i < v1.size(); i++)
             {
-                for (size_t j = 0; j < v2.size(); j++)
-                {
-                    if (v1[i] == v2[j])
-                        return true;
-                }
+                if (isDuplicate(v2, v1[i]))
+                    return true;
             }
             return false;
         }
@@ -70,7 +64,6 @@ class ConfigValidator
         static void validateLocation(const LocationConfig& loc);
         static void checkDuplicates(const HttpConfig& config);
         static void checkDupLocations(const HttpConfig& config);
-        static void checkDupServers(const HttpConfig& config);
 };
 
 #endif

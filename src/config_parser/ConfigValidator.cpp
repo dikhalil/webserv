@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 23:47:58 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 18:43:35 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 01:24:40 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ bool ConfigValidator::isValidStatus(int code)
 
 bool ConfigValidator::isReserved(const std::string& word)
 {
-    static const std::string reserved[] = {
+    static const char* reserved[] = {
         "http", "server", "location", "listen", "server_name", "root",
         "index", "error_page", "client_max_body_size", "autoindex", 
         "methods", "return", "upload", "upload_path", "cgi", "cgi_ext", "cgi_bin_path"
@@ -55,10 +55,8 @@ bool ConfigValidator::isReserved(const std::string& word)
     static const size_t count = sizeof(reserved) / sizeof(reserved[0]);
     
     for (size_t i = 0; i < count; i++)
-    {
         if (word == reserved[i])
             return true;
-    }
     return false;
 }
 
@@ -116,6 +114,22 @@ bool ConfigValidator::isValidPort(const std::string& port)
     return (p > 0 && p <= 65535);
 }
 
+bool ConfigValidator::isValidString(const std::string& value, const std::string& allowedChars)
+{
+    if (value.empty())
+        return false;
+    for (size_t i = 0; i < value.length(); i++)
+    {
+        char c = value[i];        
+        if (std::isalnum(static_cast<unsigned char>(c)))
+            continue;
+        if (allowedChars.find(c) != std::string::npos)
+            continue;
+        return false;
+    }
+    return true;
+}
+
 void ConfigValidator::validateMethod(const std::string& method)
 {
     if (isReserved(method))
@@ -128,14 +142,32 @@ void ConfigValidator::validateLocation(const LocationConfig& loc)
 {
     if (loc.path.empty())
         throw std::runtime_error("Location must have a path");
-    if (loc.uploadEnabled && loc.uploadPath.empty())
-        throw std::runtime_error("Location with upload enabled must have upload_path");
+    if (loc.redirectCode != 0)
+        return;
+    validateContext(loc.ctx);
+    for (size_t i = 0; i < loc.allowedMethods.size(); i++)
+        validateMethod(loc.allowedMethods[i]);
+    if (loc.uploadEnabled && !isValidString(loc.uploadPath, "_-./"))
+        throw std::runtime_error("Invalid upload_path: " + loc.uploadPath);    
     if (loc.cgiEnabled && loc.cgiExtensions.empty())
         throw std::runtime_error("Location with cgi enabled must have cgi_ext");
 }
 
 void ConfigValidator::validateServer(const ServerConfig& srv)
 {
+    for (size_t i = 0; i < srv.serverNames.size(); i++)
+    {
+        const std::string& name = srv.serverNames[i];
+        
+        if (!isValidString(name, ".-*"))
+            throw std::runtime_error("Invalid server_name: " + name);
+        for (size_t j = 0; j < name.length(); j++)
+        {
+            if (name[j] == '*' && j != 0 && j != name.length() - 1)
+                throw std::runtime_error("Invalid server_name: " + name + " (* only at start or end)");
+        }
+    }    
+    validateContext(srv.ctx);
     for (size_t i = 0; i < srv.locations.size(); i++)
         validateLocation(srv.locations[i]);
 }
@@ -157,24 +189,37 @@ void ConfigValidator::checkDupLocations(const HttpConfig& config)
     }
 }
 
-void ConfigValidator::checkDupServers(const HttpConfig& config)
-{
-    compareAllPairs(config.servers, compareServers);
-}
-
 void ConfigValidator::checkDuplicates(const HttpConfig& config)
 {
     checkDupLocations(config);
-    checkDupServers(config);
+    compareAllPairs(config.servers, compareServers);
+}
+
+void ConfigValidator::validateContext(const ConfigContext& ctx)
+{
+    if (!ctx.root.empty() && !isValidString(ctx.root, "_-./"))
+        throw std::runtime_error("Invalid root: " + ctx.root);
+    for (size_t i = 0; i < ctx.index.size(); i++)
+    {
+        if (!isValidString(ctx.index[i], "_-./"))
+            throw std::runtime_error("Invalid index: " + ctx.index[i]);
+    }            
+    for (std::map<int, std::string>::const_iterator it = ctx.errorPages.begin();
+         it != ctx.errorPages.end(); ++it)
+    {
+        if (!isValidString(it->second, "_-./"))
+            throw std::runtime_error("Invalid error_page path: " + it->second);
+    }            
+    if (!ctx.cgiBinPath.empty() && !isValidString(ctx.cgiBinPath, "_-./"))
+        throw std::runtime_error("Invalid cgi_bin_path: " + ctx.cgiBinPath);
 }
 
 void ConfigValidator::validate(const HttpConfig& config)
 {
     if (config.servers.empty())
-        throw std::runtime_error("Configuration must have at least one server");
-    
+        throw std::runtime_error("Configuration must have at least one server");    
+    validateContext(config.ctx);
     for (size_t i = 0; i < config.servers.size(); i++)
         validateServer(config.servers[i]);
-    
     checkDuplicates(config);
 }

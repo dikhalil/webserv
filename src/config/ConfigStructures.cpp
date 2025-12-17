@@ -6,11 +6,12 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 18:59:54 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 01:27:37 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigStructures.hpp"
+#include "ConfigParser.hpp"
 
 ConfigContext::ConfigContext() : autoIndex(-1) {}
 
@@ -26,13 +27,10 @@ void ConfigContext::inheritFrom(const ConfigContext& parent)
         autoIndex = parent.autoIndex;
     if (cgiBinPath.empty())
         cgiBinPath = parent.cgiBinPath;
-    
-    for (std::map<int, std::string>::const_iterator it = parent.errorPages.begin();
+    for (std::map<int, std::string>::const_iterator it = parent.errorPages.begin(); 
          it != parent.errorPages.end(); ++it)
-    {
         if (errorPages.find(it->first) == errorPages.end())
             errorPages[it->first] = it->second;
-    }
 }
 
 void ConfigContext::applyDefaults()
@@ -69,7 +67,6 @@ ServerConfig::ServerConfig()
     listen.push_back(defaultListen);
 }
 
-
 HttpConfig::HttpConfig() {}
 
 void LocationConfig::applyDefaults()
@@ -88,6 +85,12 @@ void ServerConfig::applyDefaults()
 {
     ctx.applyDefaults();
     
+    if (locations.empty())
+    {
+        LocationConfig defaultLocation;
+        defaultLocation.path = "/";
+        locations.push_back(defaultLocation);
+    }
     for (size_t i = 0; i < locations.size(); i++)
     {
         locations[i].ctx.inheritFrom(ctx);
@@ -105,4 +108,39 @@ void HttpConfig::createDefaultConfig()
     defaultServer.locations.push_back(defaultLocation);
     defaultServer.applyDefaults();
     servers.push_back(defaultServer);
+}
+
+bool HttpConfig::operator()(ConfigParser* parser, const std::string& directive)
+{
+    if (directive == "server")
+    {
+        parser->parseServer();
+        return true;
+    }
+    return false;
+}
+
+bool ServerConfig::operator()(ConfigParser* parser, const std::string& directive)
+{
+    if (directive == "listen")
+    {
+        parser->parseListen(*this);
+        return true;
+    }
+    else if (directive == "server_name")
+    {
+        parser->parseString("server_name", &serverNames);
+        return true;
+    }
+    else if (directive == "location")
+    {
+        parser->parseLocation(*this);
+        return true;
+    }
+    return false;
+}
+
+bool LocationConfig::operator()(ConfigParser* parser, const std::string& directive)
+{
+    return parser->parseLocDirective(directive, *this);
 }

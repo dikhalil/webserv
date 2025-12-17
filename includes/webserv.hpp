@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 00:28:07 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/16 20:43:20 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 00:05:08 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept> 
+#include <algorithm>
 
 
 

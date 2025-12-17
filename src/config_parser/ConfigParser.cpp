@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:36:34 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 19:16:53 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 01:25:30 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,13 +55,13 @@ void ConfigParser::parse(const std::string& filename)
 bool ConfigParser::parseContext(const std::string& directive, ConfigContext& ctx)
 {
     if (directive == "root" || directive == "cgi_bin_path")
-        parseSimpleString(directive, (directive == "root" ? ctx.root : ctx.cgiBinPath));
+        parseString(directive, NULL, (directive == "root" ? &ctx.root : &ctx.cgiBinPath));
     else if (directive == "index")
-        parseStringList("index", ctx.index);
+        parseString("index", &ctx.index);
     else if (directive == "client_max_body_size")
         parseBodySize(ctx);
     else if (directive == "autoindex")
-        parseSimpleBool("autoindex", ctx.autoIndex);
+        parseBool("autoindex", ctx.autoIndex);
     else if (directive == "error_page")
         parseErrorPage(ctx);
     else
@@ -71,47 +71,19 @@ bool ConfigParser::parseContext(const std::string& directive, ConfigContext& ctx
 
 void ConfigParser::parseHttp()
 {
-    bool hasServer = false;
-
     tokenizer.expect("http");
-    tokenizer.expect("{");    
-    while (tokenizer.hasMore() && tokenizer.peek() != "}")
-    {
-        std::string directive = tokenizer.peek();
-
-        if (directive == "server")
-        {
-            hasServer = true;
-            parseServer();
-        }
-        else if (!parseContext(directive, config.ctx))
-            throw std::runtime_error("Unknown directive in http block: " + directive);
-    }
-    tokenizer.expect("}");
-    if (!hasServer)
+    parseBlock(config.ctx, config);
+    
+    if (config.servers.empty())
         throw std::runtime_error("HTTP block must contain at least one server block");
 }
 
 void ConfigParser::parseServer()
 {
     ServerConfig server;
-    
     tokenizer.expect("server");
-    tokenizer.expect("{");
-    while (tokenizer.hasMore() && tokenizer.peek() != "}")
-    {
-        std::string directive = tokenizer.peek();
-        
-        if (directive == "listen")
-            parseListen(server);
-        else if (directive == "server_name")
-            parseStringList("server_name", server.serverNames);
-        else if (directive == "location")
-            parseLocation(server);
-        else if (!parseContext(directive, server.ctx))
-            throw std::runtime_error("Unknown directive in server block: " + directive);
-    }
-    tokenizer.expect("}");
+    parseBlock(server.ctx, server);
+    
     config.servers.push_back(server);
 }
 
@@ -127,30 +99,22 @@ void ConfigParser::parseLocation(ServerConfig& server)
         throw std::runtime_error("Location path cannot be empty");
     if (location.path[0] != '/')
         throw std::runtime_error("Location path must start with '/', got: " + location.path);
-    tokenizer.expect("{");
-    while (tokenizer.hasMore() && tokenizer.peek() != "}")
-    {
-        std::string directive = tokenizer.peek();
-        
-        if (!parseContext(directive, location.ctx) && 
-            !parseLocDirective(directive, location))
-            throw std::runtime_error("Unknown directive in location block: " + directive);
-    }
-    tokenizer.expect("}");
+    
+    parseBlock(location.ctx, location);
+    
     server.locations.push_back(location);
 }
 
 bool ConfigParser::parseLocDirective(const std::string& directive, LocationConfig& location)
 {
     if (directive == "methods" || directive == "cgi_ext")
-        parseStringList(directive, (directive == "methods" ? location.allowedMethods : location.cgiExtensions), 
-                        (directive == "methods" ? ConfigValidator::validateMethod : NULL));
+        parseString(directive, (directive == "methods" ? &location.allowedMethods : &location.cgiExtensions));
     else if (directive == "return")
         parseReturn(location);
     else if (directive == "upload" || directive == "cgi")
-        parseSimpleBool(directive, (directive == "upload" ? location.uploadEnabled : location.cgiEnabled));
+        parseBool(directive, (directive == "upload" ? location.uploadEnabled : location.cgiEnabled));
     else if (directive == "upload_path")
-        parseSimpleString("upload_path", location.uploadPath);
+        parseString("upload_path", NULL, &location.uploadPath);
     else
         return false;
     return true;
@@ -207,7 +171,7 @@ void ConfigParser::parseListen(ServerConfig& server)
     tokenizer.consume();
     if (!tokenizer.hasMore())
         throw std::runtime_error("listen directive requires address:port or port");
-    ListenConfig conf = parseListen(tokenizer.consume());
+    ListenConfig conf = parseListen(tokenizer.consumeValue()); 
     
     if (server.listen.size() == 1 && 
         server.listen[0].host == "0.0.0.0" && 
@@ -223,50 +187,50 @@ void ConfigParser::parseReturn(LocationConfig& location)
     tokenizer.consume();
     if (!tokenizer.hasMore())
         throw std::runtime_error("return directive requires status code and URL");
-    std::string codeStr = tokenizer.consume();
+    std::string codeStr = tokenizer.consumeValue();  
     
     location.redirectCode = std::atoi(codeStr.c_str());
     if (!validator.isValidStatus(location.redirectCode))
         throw std::runtime_error("Invalid HTTP status code: " + codeStr);
     if (!tokenizer.hasMore() || tokenizer.peek() == ";")
         throw std::runtime_error("return directive requires a URL");
-    location.redirectUrl = tokenizer.consume();
+    location.redirectUrl = tokenizer.consumeValue();  
     tokenizer.expect(";");
 }
 
-void ConfigParser::parseStringList(const std::string& directive, std::vector<std::string>& target, 
-                void (*validate)(const std::string&))
+void ConfigParser::parseString(const std::string& directive, std::vector<std::string>* target, std::string *single)
 {
     tokenizer.consume();
     ConfigValidator::checkValue(tokenizer, directive);
-    target.clear();
-    while (tokenizer.hasMore() && tokenizer.peek() != ";")
+    if (target == NULL)
+        *single = tokenizer.consumeValue();
+    else
     {
-        std::string next = tokenizer.peek();
-        if (next == "}" || next == "{" || ConfigValidator::isReserved(next))
-            break;
-        std::string val = getValue(directive);
-        
-        if (validate != NULL)
-            validate(val);
-        if (!ConfigValidator::isDuplicate(target, val))
-            target.push_back(val);
+        target->clear();
+        while (tokenizer.hasMore() && tokenizer.peek() != ";")
+        {
+            std::string next = tokenizer.peek();
+            if (next == "}" || next == "{" || ConfigValidator::isReserved(next))
+                break;
+            std::string val = getValue(directive);
+            
+            if (!ConfigValidator::isDuplicate(*target, val))
+                target->push_back(val);
+        }
     }
     tokenizer.expect(";");
 }
 
-void ConfigParser::parseSimpleString(const std::string& directive, std::string& target)
-{
-    tokenizer.consume();
-    target = getValue(directive);
-    tokenizer.expect(";");
-}
-
-void ConfigParser::parseSimpleBool(const std::string& directive, int& target)
+void ConfigParser::parseBool(const std::string& directive, int& target)
 {
     tokenizer.consume();
     std::string val = getValue(directive);
-    target = parseBool(val, directive) ? 1 : 0;
+    if (val == "on")
+        target = 1;
+    else if (val == "off")
+        target = 0;
+    else
+        throw std::runtime_error("Invalid value for " + directive + ": " + val + ". Expected 'on' or 'off'.");
     tokenizer.expect(";");
 }
 
@@ -281,33 +245,28 @@ long long ConfigParser::parseSize(const std::string& val) const
 {
     if (val.empty())
         throw std::runtime_error("Size value cannot be empty");
+    if (val == "0")
+        return 0;
     char last = val[val.length() - 1];
     long long mult = 1;
+    std::string num;
     
     if (last == 'k' || last == 'K')
         mult = 1024;
     else if (last == 'm' || last == 'M')
         mult = 1024 * 1024;
     else if (last == 'g' || last == 'G')
-        mult = 1024 * 1024 * 1024;
-    std::string num = val.substr(0, val.length() - 1);
-    
+        mult = 1024 * 1024 * 1024;    
+    else
+        num = val;
+    if (num.empty())
+        num = val.substr(0, val.length() - 1);
     if (!ConfigValidator::isDigits(num))
         throw std::runtime_error("Invalid size value: " + val);
     long long n = std::atoll(num.c_str());
     if (n < 0)
         throw std::runtime_error("Invalid size value: " + val);
     return n * mult;
-}
-
-bool ConfigParser::parseBool(const std::string& val, const std::string& directive) const
-{
-    if (val == "on")
-        return true;
-    else if (val == "off")
-        return false;
-    else
-        throw std::runtime_error(directive + " must be 'on' or 'off', got: " + val);
 }
 
 ListenConfig ConfigParser::parseListen(const std::string& val) const
@@ -342,7 +301,7 @@ ListenConfig ConfigParser::parseListen(const std::string& val) const
 std::string ConfigParser::getValue(const std::string& directive)
 {
     ConfigValidator::checkValue(tokenizer, directive);
-    std::string val = tokenizer.consume();
+    std::string val = tokenizer.consumeValue();
     return val;
 }
 

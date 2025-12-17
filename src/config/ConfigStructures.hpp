@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:38:58 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 18:59:54 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 01:19:22 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,7 @@ struct LocationConfig
     
     LocationConfig();
     void applyDefaults();
+    bool operator()(class ConfigParser* parser, const std::string& directive);
 };
 
 struct ServerConfig
@@ -63,6 +64,7 @@ struct ServerConfig
     
     ServerConfig();
     void applyDefaults();
+    bool operator()(class ConfigParser* parser, const std::string& directive);
 };
 
 struct HttpConfig
@@ -72,6 +74,7 @@ struct HttpConfig
     
     HttpConfig();
     void createDefaultConfig();
+    bool operator()(class ConfigParser* parser, const std::string& directive);
 };
 
 #endif

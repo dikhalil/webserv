@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:41 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 00:38:47 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/18 01:23:02 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,24 +32,25 @@ std::string Tokenizer::trim(const std::string& line)
     return line.substr(first, last - first + 1);
 }
 
-std::string Tokenizer::addSpacesBetweenSymbol(std::string& line)
+std::string Tokenizer::addSpacesBetweenSymbol(const std::string& line)
 {
-    std::string modifiedLine;
-    
-    for (size_t i = 0; i < line.length(); ++i)
+    std::ostringstream oss;
+    for (size_t i = 0; i < line.length(); i++)
     {
-        if (line[i] == '{' || line[i] == '}' || line[i] == ';')
-        {
-            modifiedLine += ' ';
-            modifiedLine += line[i];
-            modifiedLine += ' ';
-        }
+        char c = line[i];
+        if (c == '{' || c == '}' || c == ';')
+            oss << " " << c << " ";
         else
-        {
-            modifiedLine += line[i];
-        }
+            oss << c;
     }
-    return modifiedLine;
+    return oss.str();
+}
+
+std::string Tokenizer::stripQuotes(const std::string& token)
+{
+    if (token.length() > 2 && token[0] == '"' && token[token.length() - 1] == '"')
+        return token.substr(1, token.length() - 2);
+    return token;
 }
 
 void Tokenizer::tokenizeFile(const std::string& filename)
@@ -98,6 +99,11 @@ std::string Tokenizer::consume()
     if (!hasMore())
         throw std::runtime_error("Unexpected end of file");
     return tokens[pos++];
+}
+
+std::string Tokenizer::consumeValue()
+{
+    return (stripQuotes(consume()));
 }
 
 void Tokenizer::expect(const std::string& expected)
