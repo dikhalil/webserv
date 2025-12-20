@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 23:47:58 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/18 01:24:40 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/19 20:23:13 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,6 +112,38 @@ bool ConfigValidator::isValidPort(const std::string& port)
     
     int p = std::atoi(port.c_str());
     return (p > 0 && p <= 65535);
+}
+
+bool ConfigValidator::isValidHostname(const std::string& hostname)
+{
+    size_t start = 0;
+    size_t pos;
+    if (hostname.empty() || hostname.length() > 253)
+        return false;
+    if (hostname == "localhost")
+        return true;    
+    if (hostname[0] == '.' || hostname[hostname.length() - 1] == '.')
+        return false;
+    while (true)
+    {
+        pos = hostname.find('.', start);
+        size_t end = (pos == std::string::npos) ? hostname.length() : pos;
+        std::string label = hostname.substr(start, end - start);
+        if (label.empty() || label.length() > 63)
+            return false;
+        if (label[0] == '-' || label[label.length() - 1] == '-')
+            return false;        
+        for (size_t j = 0; j < label.length(); j++)
+        {
+            char c = label[j];
+            if (!std::isalnum(c) && c != '-')
+                return false;
+        }        
+        if (pos == std::string::npos)
+            break;
+        start = pos + 1;
+    }
+    return true;
 }
 
 bool ConfigValidator::isValidString(const std::string& value, const std::string& allowedChars)

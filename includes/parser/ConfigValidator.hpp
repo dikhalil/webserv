@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:33:22 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/17 23:47:01 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/19 20:26:15 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ class ConfigValidator
         static bool isValidStatus(int code);
         static bool isValidIP(const std::string& ip);
         static bool isValidPort(const std::string& port);
+        static bool isValidHostname(const std::string& hostname);
         static bool isReserved(const std::string& word);
         static bool isBlock(const std::string& token);
         static bool isDigits(const std::string& str);

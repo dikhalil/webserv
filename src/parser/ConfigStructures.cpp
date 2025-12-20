@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/18 01:27:37 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/20 00:30:33 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,21 @@ void ConfigContext::applyDefaults()
         clientMaxBodySize = oss.str();
     }
     if (autoIndex == -1)
-        autoIndex = 0;
+        autoIndex = 0;    
+    if (errorPages.find(400) == errorPages.end())
+        errorPages[400] = root + "/error_pages/400.html";
+    if (errorPages.find(403) == errorPages.end())
+        errorPages[403] = root + "/error_pages/403.html";
+    if (errorPages.find(404) == errorPages.end())
+        errorPages[404] = root + "/error_pages/404.html";
+    if (errorPages.find(405) == errorPages.end())
+        errorPages[405] = root + "/error_pages/405.html";
+    if (errorPages.find(500) == errorPages.end())
+        errorPages[500] = root + "/error_pages/500.html";
+    if (errorPages.find(502) == errorPages.end())
+        errorPages[502] = root + "/error_pages/502.html";
+    if (errorPages.find(504) == errorPages.end())
+        errorPages[504] = root + "/error_pages/504.html";
 }
 
 ListenConfig::ListenConfig() : port(8080)

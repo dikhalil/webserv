@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:36:34 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/18 01:25:30 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/19 20:18:42 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -279,8 +279,8 @@ ListenConfig ConfigParser::parseListen(const std::string& val) const
         conf.host = val.substr(0, colon);
         std::string port = val.substr(colon + 1);
         
-        if (!ConfigValidator::isValidIP(conf.host))
-            throw std::runtime_error("Invalid IP address: " + conf.host);
+        if (!ConfigValidator::isValidIP(conf.host) && !ConfigValidator::isValidHostname(conf.host))
+            throw std::runtime_error("Invalid IP address or hostname: " + conf.host);
         conf.port = parsePort(port);
     }
     else if (ConfigValidator::isValidPort(val))
@@ -288,10 +288,10 @@ ListenConfig ConfigParser::parseListen(const std::string& val) const
         conf.host = "0.0.0.0";
         conf.port = parsePort(val);
     }
-    else if (ConfigValidator::isValidIP(val))
+    else if (ConfigValidator::isValidIP(val) || ConfigValidator::isValidHostname(val))
     {
         conf.host = val;
-        conf.port = 80;
+        conf.port = 8080;
     }
     else
         throw std::runtime_error("Invalid listen directive: " + val);
