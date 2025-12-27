@@ -1,33 +1,32 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Tokenizer.hpp                                      :+:      :+:    :+:   */
+/*   ConfigConfigTokenizer.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/11 17:15:47 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/18 01:22:11 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/26 18:41:05 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef TOKENIZER_HPP
-#define TOKENIZER_HPP
+#ifndef ConfigTokenizer_HPP
+#define ConfigTokenizer_HPP
 
 #include "webserv.hpp"
 
-class Tokenizer
+class ConfigTokenizer
 {
     private:
         std::vector<std::string> tokens;
         size_t pos;
         
         std::string removeComments(const std::string& line);
-        std::string trim(const std::string& line);
         std::string addSpacesBetweenSymbol(const std::string& line);
         std::string stripQuotes(const std::string& token);
         
         public:
-        Tokenizer();
+        ConfigTokenizer();
         
         void tokenizeFile(const std::string& filename);
         std::vector<std::string>& getTokens();
