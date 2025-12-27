@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 16:50:04 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 01:29:28 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/27 22:19:04 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -327,9 +327,8 @@ void Server::readFromClient(Socket& client)
             localPort = ls->port;
         }
         HttpRequest request(_config, client.buffer, localIp, localPort);
-        RequestStatus status = request.isValidRequest();
-        std::cout << "Request validation status: " << status << std::endl;
-        
+        if (request.getHeaders().at("Connection") == "close")
+            closeSocket(clientSockets, client.fd);
         changePollEvent(client.fd, POLLOUT);
     }
 }

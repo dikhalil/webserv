@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 18:29:27 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 21:36:49 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/27 22:26:43 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,8 @@ RequestStatus HttpRequest::isValidRequestLine()
         return REQ_BAD_REQUEST;
     if (method != "GET" && method != "POST" && method != "DELETE")
         return REQ_METHOD_NOT_ALLOWED;
+    if (uri.length() > 2048)
+        return REQ_URI_TOO_LONG;
     if (httpVersion != "HTTP/1.1")
         return REQ_VERSION_NOT_SUPPORTED;
     return REQ_OK;
@@ -263,11 +265,7 @@ RequestStatus HttpRequest::isValidRequestBody()
     if (method == "GET" || method == "DELETE")
         return status;
     if (body.empty())
-    {
-        if (isCgiRequest())
-            return status;
         return REQ_BAD_REQUEST;
-    }
     size_t clientMaxBodySize = strToUL(location->ctx.clientMaxBodySize);
     
     if (headers.count("Transfer-Encoding"))
