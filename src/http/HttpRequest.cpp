@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 18:29:27 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 01:10:22 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/27 21:36:49 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,11 @@ HttpRequest::HttpRequest(const HttpConfig& config,
     const std::string& reqStr,
     const std::string& localIp,
     int localPort)
-    : httpConfig(config), request(reqStr),server(NULL), loaction(NULL),
+    : httpConfig(config), request(reqStr),server(NULL), location(NULL),
     _localIp(localIp), _localPort(localPort), redirectCode(0)
 {
-    parseRequest();
+    status = parseRequest();
+    isValidRequest();
 }
 
 
@@ -48,6 +49,8 @@ RequestStatus HttpRequest::parseRequest()
     std::ostringstream bodyStream;
     bodyStream << requestStream.rdbuf();
     body = bodyStream.str();
+    stripCRLFFromBody();
+
     return REQ_OK;
 }
 
@@ -62,20 +65,20 @@ RequestStatus HttpRequest::isValidRequestLine()
     return REQ_OK;
 }
 
-bool HttpRequest::isCgiRequest(LocationConfig &loc, std::string const &uri)
+bool HttpRequest::isCgiRequest()
 {
     size_t dotPos;
     std::string ext;
 
-    if (!loc.cgiEnabled)
+    if (!location->cgiEnabled)
         return false;
     dotPos = uri.rfind('.');
     if (dotPos == std::string::npos)
         return false;
     ext = uri.substr(dotPos + 1);
-    for (size_t i = 0; i < loc.cgiExtensions.size(); i++)
+    for (size_t i = 0; i < location->cgiExtensions.size(); i++)
     {
-        if (ext == loc.cgiExtensions[i])
+        if (ext == location->cgiExtensions[i])
             return true;
     }
     return false;
@@ -123,10 +126,10 @@ RequestStatus HttpRequest::isValidHeader()
     else
         path = location->ctx.root + uri;
     pathExists = (stat(path.c_str(), &ps) == 0);
-    isDir = pathExists && S_ISDIR(ps.st_mode());
-    isFile = pathExists && S_ISREG(ps.st_mode());
+    isDir = pathExists && S_ISDIR(ps.st_mode);
+    isFile = pathExists && S_ISREG(ps.st_mode);
 
-    if (isCgiRequest(*location, uri))
+    if (isCgiRequest())
     {
         if (pathExists && isFile)
         {
@@ -173,22 +176,22 @@ RequestStatus HttpRequest::isValidHeader()
         if (isFile)
         {
             finalPath = path;
-            return REQ_DELETE; 
+            return REQ_OK; 
         }
     }
     if (method == "POST")
     {
         if (!pathExists)
         {
-            if (isCgiRequest(*location, uri))
+            if (isCgiRequest())
                 return REQ_NOT_FOUND;
-            if (location->ctx.uploadEnabled)
+            if (location->uploadEnabled)
             {
                 struct stat uploadDir;
-                if (stat(location->ctx.uploadDir.c_str(), &uploadDir) == 0
+                if (stat(location->uploadPath.c_str(), &uploadDir) == 0
                     && S_ISDIR(uploadDir.st_mode))
                 {
-                    finalPath = location->ctx.uploadDir;
+                    finalPath = location->uploadPath;
                     return REQ_UPLOAD;
                 }
                 else 
@@ -199,7 +202,7 @@ RequestStatus HttpRequest::isValidHeader()
         }
         else 
         {
-            if (isCgiRequest(*location, uri) && isDir)
+            if (isCgiRequest() && isDir)
                 return REQ_FORBIDDEN;
             return REQ_CONFLICT;
         }
@@ -207,32 +210,87 @@ RequestStatus HttpRequest::isValidHeader()
     return REQ_OK;
 }
 
+void HttpRequest::stripCRLFFromBody()
+{
+    std::ostringstream cleanBody;
+    std::istringstream stream(body);
+    std::string line;
+
+    while (std::getline(stream, line))
+    {
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line = line.substr(0, line.size() - 1);
+        cleanBody << line;
+    }
+    body = cleanBody.str();
+}
+
+bool HttpRequest::unchunkBody()
+{
+    std::istringstream stream(body);
+    std::ostringstream unchunked;
+    std::string line;
+
+    while (std::getline(stream, line))
+    {
+        if (line == "0")
+            break;
+        unsigned long chunkSize = 0;
+        std::istringstream hexStream(line);
+        hexStream >> std::hex >> chunkSize;
+        if (hexStream.fail()) 
+            return false;
+        if (chunkSize == 0)
+            break;
+        char *buffer = new char[chunkSize];
+        stream.read(buffer, chunkSize);
+        if (stream.gcount() != static_cast<std::streamsize>(chunkSize)) 
+        {
+            delete[] buffer;
+            return false;
+        }
+        unchunked.write(buffer, chunkSize);
+        delete[] buffer;
+        if (!std::getline(stream, line))
+            break;
+    }
+    body = unchunked.str();
+    return true;
+}
+
 RequestStatus HttpRequest::isValidRequestBody()
 {
     if (method == "GET" || method == "DELETE")
-        return REQ_OK;
-    if (body.empty() && isCgiRequest(*location, uri))
-        return REQ_CGI;
+        return status;
     if (body.empty())
+    {
+        if (isCgiRequest())
+            return status;
         return REQ_BAD_REQUEST;
+    }
+    size_t clientMaxBodySize = strToUL(location->ctx.clientMaxBodySize);
+    
     if (headers.count("Transfer-Encoding"))
     {
         if (headers.at("Transfer-Encoding") != "chunked")
             return REQ_NOT_IMPLEMENTED;
-        return REQ_OK;
+        if (!unchunkBody())
+            return REQ_BAD_REQUEST;
     }
     else if (headers.count("Content-Length"))
     {
-        size_t cl = strToUL(msgBodyFraming);
-        if (cl > location->ctx.clientMaxBodySize && clientMaxBodySize != 0)
-            return 
+        size_t cl = strToUL(headers.at("Content-Length"));
+        if (body.size() > cl)
+            return REQ_PAYLOAD_TOO_LARGE;
     }
     else 
         return REQ_NOT_IMPLEMENTED;
+    if (clientMaxBodySize && body.size() > clientMaxBodySize)
+        return REQ_PAYLOAD_TOO_LARGE;
     return REQ_OK;
 }
 
-bool isFatalStatus(RequestStatus status)
+bool HttpRequest::isFatalStatus()
 {
     return (
         status == REQ_BAD_REQUEST ||
@@ -240,7 +298,6 @@ bool isFatalStatus(RequestStatus status)
         status == REQ_NOT_FOUND ||
         status == REQ_METHOD_NOT_ALLOWED ||
         status == REQ_CONFLICT ||
-        status == REQ_LENGTH_REQUIRED ||
         status == REQ_PAYLOAD_TOO_LARGE ||
         status == REQ_URI_TOO_LONG ||
         status == REQ_INTERNAL_SERVER_ERROR ||
@@ -250,18 +307,18 @@ bool isFatalStatus(RequestStatus status)
 }
 
 
-RequestStatus HttpRequest::isValidRequest()
-{
-    RequestStatus status;
-    
+void HttpRequest::isValidRequest()
+{    
+    if (isFatalStatus())
+        return ;
     status = isValidRequestLine();
-    if (isFatalStatus(status))
-        return status;
+    if (isFatalStatus())
+        return ;
     status = isValidHeader();
-    if (isFatalStatus(status))
-        return status;
+    if (isFatalStatus())
+        return ;
     status = isValidRequestBody();
-    return status;
+    return ;
 }
 
 const std::string& HttpRequest::getMethod() const
@@ -299,4 +356,7 @@ const std::string& HttpRequest::getRedirectUri() const
     return redirectUri;
 }
 
-
+const RequestStatus &HttpRequest::getStatus() const
+{
+    return status;
+}

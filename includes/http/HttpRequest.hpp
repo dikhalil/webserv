@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 18:14:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 01:17:01 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/27 21:34:54 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,9 @@
 #define HTTP_REQUEST_HPP
 
 #include "ConfigValidator.hpp"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 enum RequestStatus
 {
@@ -56,11 +59,16 @@ class HttpRequest
         std::map<std::string, std::string> headers;
         std::string body;
         
+        RequestStatus status;
+        bool isFatalStatus();
+        bool isCgiRequest();
+        bool unchunkBody();
+        void stripCRLFFromBody();
     public:
         HttpRequest(const HttpConfig& config, const std::string& reqStr,
                     const std::string& localIp, int localPort);
         RequestStatus parseRequest();
-        RequestStatus isValidRequest();
+        void isValidRequest();
         RequestStatus isValidRequestLine();
         RequestStatus isValidHeader();
         RequestStatus isValidRequestBody();
@@ -71,6 +79,7 @@ class HttpRequest
         const std::string& getBody() const;
         short getRedirectCode() const;
         const std::string& getRedirectUri() const;
+        const RequestStatus &getStatus() const;
 };
 
 #endif
