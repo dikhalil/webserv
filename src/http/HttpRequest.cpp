@@ -6,27 +6,97 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 18:29:27 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 22:26:43 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/29 00:01:15 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpRequest.hpp"
+#include <map>
 
 HttpRequest::HttpRequest(const HttpConfig& config,
     const std::string& reqStr,
     const std::string& localIp,
     int localPort)
-    : httpConfig(config), request(reqStr),server(NULL), location(NULL),
-    _localIp(localIp), _localPort(localPort), redirectCode(0)
+    : httpConfig(config), request(reqStr), _localIp(localIp), 
+    _localPort(localPort), location(NULL), server(NULL), redirectCode(0)
 {
-    status = parseRequest();
     isValidRequest();
+    setErrorPagePath();
 }
 
-
-RequestStatus HttpRequest::parseRequest()
+std::string buildPath(const std::string& root, const std::string& locationPath, const std::string& uri)
 {
-    std::istringstream requestStream(request);
+    std::string uriNoPrefix = uri;
+    if (!locationPath.empty() && uri.find(locationPath) == 0)
+    {
+        uriNoPrefix = uri.substr(locationPath.length());
+        if (uriNoPrefix.empty())
+            uriNoPrefix = "/";
+    }
+    if (!uriNoPrefix.empty() && uriNoPrefix[0] == '/' && uriNoPrefix != "/")
+        uriNoPrefix = uriNoPrefix.substr(1);
+    if (root[root.size() - 1] == '/')
+        return root + uriNoPrefix;
+    else
+        return root + "/" + uriNoPrefix;
+}
+
+RequestStatus HttpRequest::handleCgiRequest()
+{
+    std::string cgiScriptName = uri.substr(uri.find_last_of('/') + 1);
+    std::string cgiScriptPath = location->ctx.cgiBinPath;
+    if (!cgiScriptPath.empty() && cgiScriptPath[cgiScriptPath.size() - 1] != '/')
+        cgiScriptPath += "/";
+    cgiScriptPath += cgiScriptName;
+    struct stat cgiStat;
+    if (stat(cgiScriptPath.c_str(), &cgiStat) != 0)
+        return REQ_NOT_FOUND;
+    if (S_ISREG(cgiStat.st_mode))
+    {
+        if (hasAccess(cgiScriptPath, X_OK))
+        {
+            finalPath = cgiScriptPath;
+            return REQ_CGI;
+        }
+        else 
+            return REQ_FORBIDDEN;
+    }
+    return REQ_OK;
+}
+
+bool HttpRequest::hasAccess(const std::string& path, int mode)
+{
+    return access(path.c_str(), mode) == 0;
+}
+
+bool HttpRequest::fileExists(const std::string& path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
+
+bool HttpRequest::dirExists(const std::string& path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+void HttpRequest::setErrorPagePath()
+{
+    if (!isFatalStatus())
+        return;
+    std::string root = (location ? location->ctx.root : (server ? server->ctx.root : httpConfig.ctx.root));
+    if (findErrorPage(location, status, root, finalPath)) return;
+    if (findErrorPage(server, status, root, finalPath)) return;
+    if (findErrorPage(&httpConfig, status, root, finalPath)) return;
+    if (!root.empty() && root[root.length() - 1] == '/')
+        root.erase(root.length() - 1);
+    finalPath = root + "/html/error_pages/404.html";
+    status = REQ_NOT_FOUND;
+}
+
+RequestStatus HttpRequest::parseRequestLine(std::istringstream& requestStream)
+{
     std::string line;
     
     if (!std::getline(requestStream, line))
@@ -34,9 +104,19 @@ RequestStatus HttpRequest::parseRequest()
     if (!line.empty() && line[line.length() - 1] == '\r')
         line = line.substr(0, line.length() - 1);
     std::istringstream requestLineStream(line);
-    requestLineStream >> method >> uri >> httpVersion;
-    while (std::getline(requestStream, line) && line != "\r")
+    if (!(requestLineStream >> method >> uri >> httpVersion))
+        return REQ_BAD_REQUEST;
+    return REQ_OK;
+}
+
+RequestStatus HttpRequest::parseHeaders(std::istringstream& requestStream)
+{
+    std::string line;
+    
+    while (std::getline(requestStream, line))
     {
+        if (line == "\r" || line.empty())
+            break;
         if (!line.empty() && line[line.length() - 1] == '\r')
             line = line.substr(0, line.length() - 1);
         size_t colonPos = line.find(": ");
@@ -46,11 +126,23 @@ RequestStatus HttpRequest::parseRequest()
         std::string headerValue = line.substr(colonPos + 2);
         headers[headerKey] = headerValue;
     }
+    return REQ_OK;
+}
+
+RequestStatus HttpRequest::parseRequest()
+{
+    std::istringstream requestStream(request);
+    RequestStatus lineStatus = parseRequestLine(requestStream);
+    if (lineStatus != REQ_OK)
+        return lineStatus;
+    RequestStatus headerStatus = parseHeaders(requestStream);
+    if (headerStatus != REQ_OK)
+        return headerStatus;
     std::ostringstream bodyStream;
     bodyStream << requestStream.rdbuf();
     body = bodyStream.str();
     stripCRLFFromBody();
-
+    
     return REQ_OK;
 }
 
@@ -69,15 +161,12 @@ RequestStatus HttpRequest::isValidRequestLine()
 
 bool HttpRequest::isCgiRequest()
 {
-    size_t dotPos;
-    std::string ext;
-
-    if (!location->cgiEnabled)
+    if (!location || !location->cgiEnabled)
         return false;
-    dotPos = uri.rfind('.');
+    size_t dotPos = uri.rfind('.');
     if (dotPos == std::string::npos)
         return false;
-    ext = uri.substr(dotPos + 1);
+    std::string ext = uri.substr(dotPos + 1);
     for (size_t i = 0; i < location->cgiExtensions.size(); i++)
     {
         if (ext == location->cgiExtensions[i])
@@ -86,145 +175,195 @@ bool HttpRequest::isCgiRequest()
     return false;
 }
 
-RequestStatus HttpRequest::isValidHeader()
+RequestStatus HttpRequest::validateHost()
 {
     const std::string host = headers.count("Host") ? headers.at("Host") : "";
-  
+    
     if (host.empty())
         return REQ_BAD_REQUEST;
     server = httpConfig.findServerByHost(host, _localIp, _localPort);
     if (!server)
         return REQ_BAD_REQUEST;
-    location = &(server->findLocationByUri(uri));
+    location = server->findLocationByUri(uri);
     if (!location)
-        return REQ_BAD_REQUEST;
-    if (location->redirectCode != 0)
-    {
-        redirectCode = location->redirectCode;
-        redirectUri = location->redirectUrl;
-        if (redirectCode == 300)
-            return REQ_MULTIPLE_CHOICES;
-        if (redirectCode == 301)
-            return REQ_MOVED_PERMANENTLY;
-        if (redirectCode == 302)
-            return REQ_FOUND;
-    }
-    if (std::find(location->allowedMethods.begin(), location->allowedMethods.end(), method) == location->allowedMethods.end())
+        return REQ_BAD_REQUEST;    
+    return REQ_OK;
+}
+
+RequestStatus HttpRequest::checkRedirection()
+{
+    if (location->redirectCode == 0)
+        return REQ_OK;
+    redirectCode = location->redirectCode;
+    redirectUri = location->redirectUrl;
+    if (redirectCode == 300)
+        return REQ_MULTIPLE_CHOICES;
+    if (redirectCode == 301)
+        return REQ_MOVED_PERMANENTLY;
+    if (redirectCode == 302)
+        return REQ_FOUND;
+    return REQ_OK;
+}
+
+RequestStatus HttpRequest::checkAllowedMethods()
+{
+    if (std::find(location->allowedMethods.begin(), 
+                  location->allowedMethods.end(), 
+                  method) == location->allowedMethods.end())
         return REQ_METHOD_NOT_ALLOWED;
+    return REQ_OK;
+}
 
-    struct stat rs;
-    struct stat ps;
-    std::string root;
-    std::string path;
-    bool pathExists;
-    bool isDir;
-    bool isFile;
+RequestStatus HttpRequest::isValidHeader()
+{
+    RequestStatus hostStatus = validateHost();
+    if (hostStatus != REQ_OK)
+        return hostStatus;
+    RequestStatus redirectStatus = checkRedirection();
+    if (redirectStatus != REQ_OK)
+        return redirectStatus;
+    RequestStatus methodStatus = checkAllowedMethods();
+    if (methodStatus != REQ_OK)
+        return methodStatus;
+    return validatePath();
+}
 
-    root = location->ctx.root;
-    if (stat(root.c_str(), &rs) == -1 || !S_ISDIR(rs.st_mode))
-        return REQ_INTERNAL_SERVER_ERROR;
-    if (root[root.size() - 1] == '/')
-        path = root.substr(0, root.size() - 1) + uri;
-    else
-        path = location->ctx.root + uri;
-    pathExists = (stat(path.c_str(), &ps) == 0);
-    isDir = pathExists && S_ISDIR(ps.st_mode);
-    isFile = pathExists && S_ISREG(ps.st_mode);
-
-    if (isCgiRequest())
+RequestStatus HttpRequest::checkIndexFiles(const std::string& dirPath)
+{
+    for (size_t i = 0; i < location->ctx.index.size(); i++)
     {
-        if (pathExists && isFile)
+        std::string indexPath = dirPath;
+        if (indexPath[indexPath.size() - 1] != '/')
+            indexPath += "/";
+        indexPath += location->ctx.index[i];
+        struct stat indexStat;
+        if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode))
         {
-            finalPath = path;
-            return REQ_CGI;
-        }
-    }
-    if (method == "GET")
-    {
-        if (!pathExists)
-            return REQ_NOT_FOUND;
-        if (isDir)
-        {
-            
-            for (size_t i = 0; i < location->ctx.index.size(); i++)
-            {
-                std::string indexPath = path;
-                if (indexPath[indexPath.size() - 1] != '/')
-                    indexPath += "/";
-                indexPath += location->ctx.index[i];
-                struct stat indexStat;
-                if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode))
-                {
-                    finalPath = indexPath;
-                    return REQ_OK;
-                }
-            }
-            if (location->ctx.autoIndex)
-                return REQ_AUTOINDEX;
-            return REQ_FORBIDDEN;
-        }
-        if (isFile)
-        {
-            finalPath = path;
+            if (access(indexPath.c_str(), R_OK) != 0)
+                return REQ_FORBIDDEN;
+            finalPath = indexPath;
             return REQ_OK;
         }
     }
-    if (method == "DELETE")
+    if (access(dirPath.c_str(), R_OK | X_OK) != 0)
+        return REQ_FORBIDDEN;
+    if (location->ctx.autoIndex)
+        return REQ_AUTOINDEX;
+    return REQ_FORBIDDEN;
+}
+
+RequestStatus HttpRequest::handleGetRequest(const std::string &root, const std::string& path, 
+    bool isDir, bool isFile)
+{
+    if (!isDir && !isFile)
+        return REQ_NOT_FOUND;
+    if (isDir)
     {
-        if (!pathExists)
-            return REQ_NOT_FOUND;
-        if (isDir)
+        if (access(path.c_str(), R_OK | X_OK) != 0)
             return REQ_FORBIDDEN;
-        if (isFile)
-        {
-            finalPath = path;
-            return REQ_OK; 
-        }
+        if (method == "GET")
+            return checkIndexFiles(root);
+        return REQ_FORBIDDEN;
     }
-    if (method == "POST")
+    if (isFile)
     {
-        if (!pathExists)
-        {
-            if (isCgiRequest())
-                return REQ_NOT_FOUND;
-            if (location->uploadEnabled)
-            {
-                struct stat uploadDir;
-                if (stat(location->uploadPath.c_str(), &uploadDir) == 0
-                    && S_ISDIR(uploadDir.st_mode))
-                {
-                    finalPath = location->uploadPath;
-                    return REQ_UPLOAD;
-                }
-                else 
-                    return REQ_FORBIDDEN;
-            }
-            else 
-                return REQ_METHOD_NOT_ALLOWED;
-        }
-        else 
-        {
-            if (isCgiRequest() && isDir)
+        if (method == "GET")
+            if (access(path.c_str(), R_OK) != 0)
                 return REQ_FORBIDDEN;
-            return REQ_CONFLICT;
-        }
+        if (method == "DELETE")
+            if (access(path.c_str(), W_OK) != 0)
+                return REQ_FORBIDDEN;
+        finalPath = path;
+        return REQ_OK;
     }
+    return REQ_NOT_FOUND;
+}
+
+RequestStatus HttpRequest::handleDeleteRequest(const std::string& path, bool isDir, bool isFile)
+{
+     if (!isDir && !isFile)
+        return REQ_NOT_FOUND;
+    if (isDir)
+    {
+        if (access(path.c_str(), R_OK | X_OK) != 0)
+            return REQ_FORBIDDEN;
+       // if (rmdir(path.c_str()) != 0) if dir is empty if it is full onother logic if(!deleteDirRecursive(path))
+        return REQ_FORBIDDEN;
+    }
+    if (isFile)
+    {
+        if (access(path.c_str(), W_OK) != 0)
+            return REQ_FORBIDDEN;
+        if (remove(path.c_str()) != 0)
+            return REQ_INTERNAL_SERVER_ERROR;
+        finalPath = path;
+        return REQ_DELETE;
+    }
+    return REQ_NOT_FOUND;
+}
+std::string HttpRequest::extractFileNameFromUri()
+{
+    size_t lastSlash = uri.rfind('/');
+    std::string fileName;
+    if (lastSlash != std::string::npos)
+        fileName = uri.substr(lastSlash + 1);
+    else
+        fileName = uri;
+    return fileName;
+}
+RequestStatus HttpRequest::handlePostRequest()
+{
+    isValidRequestBody();
+    if (!location->uploadEnabled)
+        return REQ_METHOD_NOT_ALLOWED;
+    std::string uploadPath = buildPath(location->ctx.root, location->path, location->uploadPath);
+    std::string fileName = uri.substr(uri.find_last_of('/') + 1);
+    if (fileName.empty() || fileName[fileName.size() - 1] == '/')
+        return REQ_BAD_REQUEST;
+    if (fileName.find('.') == std::string::npos)
+        return REQ_BAD_REQUEST;
+    finalPath = uploadPath + "/" + fileName;
+    if (dirExists(finalPath))
+        return REQ_BAD_REQUEST;
+    if (!dirExists(uploadPath) || !hasAccess(uploadPath, W_OK | X_OK))
+        return REQ_FORBIDDEN;
+    if (fileExists(finalPath))
+        return REQ_CONFLICT;
+    int fd = open(finalPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd == -1)
+        return REQ_FORBIDDEN;
+    write(fd, body.c_str(), body.size());
+    close(fd);
+    return REQ_UPLOAD;
+}
+
+RequestStatus HttpRequest::validatePath()
+{
+    std::string root = location->ctx.root;
+    std::string path = buildPath(root, location->path, uri);
+    if (!dirExists(root) || !hasAccess(root, R_OK | X_OK))
+        return REQ_FORBIDDEN;
+    bool isDir = dirExists(path);
+    bool isFile = fileExists(path);
+    if (isCgiRequest())
+        return handleCgiRequest();
+    if (method == "GET")
+        return handleGetRequest(root, path, isDir, isFile);
+    if (method == "DELETE")
+        return handleDeleteRequest(path, isDir, isFile);
+    if (method == "POST")
+        return handlePostRequest();
     return REQ_OK;
 }
 
 void HttpRequest::stripCRLFFromBody()
 {
-    std::ostringstream cleanBody;
-    std::istringstream stream(body);
-    std::string line;
-
-    while (std::getline(stream, line))
+    size_t pos = 0;
+    while ((pos = body.find("\r\n", pos)) != std::string::npos)
     {
-        if (!line.empty() && line[line.size() - 1] == '\r')
-            line = line.substr(0, line.size() - 1);
-        cleanBody << line;
+        body.erase(pos, 1);
+        pos++;
     }
-    body = cleanBody.str();
 }
 
 bool HttpRequest::unchunkBody()
@@ -237,6 +376,9 @@ bool HttpRequest::unchunkBody()
     {
         if (line == "0")
             break;
+        size_t semicolonPos = line.find(';');
+        if (semicolonPos != std::string::npos)
+            line = line.substr(0, semicolonPos);
         unsigned long chunkSize = 0;
         std::istringstream hexStream(line);
         hexStream >> std::hex >> chunkSize;
@@ -260,32 +402,39 @@ bool HttpRequest::unchunkBody()
     return true;
 }
 
+RequestStatus HttpRequest::validateContentLength()
+{
+    if (!headers.count("Content-Length"))
+        return REQ_NOT_IMPLEMENTED;
+    size_t contentLength = strToUL(headers.at("Content-Length"));
+    if (body.size() != contentLength)
+        return REQ_BAD_REQUEST;
+    return status;
+}
+
+RequestStatus HttpRequest::validateChunkedEncoding()
+{
+    if (!headers.count("Transfer-Encoding"))
+        return validateContentLength();
+    if (headers.at("Transfer-Encoding") != "chunked")
+        return REQ_NOT_IMPLEMENTED;
+    if (!unchunkBody())
+        return REQ_BAD_REQUEST;
+    return status;
+}
+
 RequestStatus HttpRequest::isValidRequestBody()
 {
-    if (method == "GET" || method == "DELETE")
-        return status;
     if (body.empty())
-        return REQ_BAD_REQUEST;
+        return REQ_BAD_REQUEST;    
     size_t clientMaxBodySize = strToUL(location->ctx.clientMaxBodySize);
-    
-    if (headers.count("Transfer-Encoding"))
-    {
-        if (headers.at("Transfer-Encoding") != "chunked")
-            return REQ_NOT_IMPLEMENTED;
-        if (!unchunkBody())
-            return REQ_BAD_REQUEST;
-    }
-    else if (headers.count("Content-Length"))
-    {
-        size_t cl = strToUL(headers.at("Content-Length"));
-        if (body.size() > cl)
-            return REQ_PAYLOAD_TOO_LARGE;
-    }
-    else 
-        return REQ_NOT_IMPLEMENTED;
+    RequestStatus encodingStatus = validateChunkedEncoding();
+    status = encodingStatus;
+    if (isFatalStatus())
+        return status;
     if (clientMaxBodySize && body.size() > clientMaxBodySize)
         return REQ_PAYLOAD_TOO_LARGE;
-    return REQ_OK;
+    return status;
 }
 
 bool HttpRequest::isFatalStatus()
@@ -304,19 +453,26 @@ bool HttpRequest::isFatalStatus()
     );
 }
 
+bool HttpRequest::isRedirectStatus()
+{
+    return (
+        status == REQ_MULTIPLE_CHOICES ||
+        status == REQ_MOVED_PERMANENTLY ||
+        status == REQ_FOUND
+    );
+}
 
 void HttpRequest::isValidRequest()
-{    
+{   
+    status = parseRequest();
     if (isFatalStatus())
-        return ;
+        return;
     status = isValidRequestLine();
     if (isFatalStatus())
-        return ;
+        return;
     status = isValidHeader();
-    if (isFatalStatus())
-        return ;
-    status = isValidRequestBody();
-    return ;
+    if (isFatalStatus() || isRedirectStatus())
+        return;
 }
 
 const std::string& HttpRequest::getMethod() const
@@ -342,6 +498,11 @@ const std::map<std::string, std::string>& HttpRequest::getHeaders() const
 const std::string& HttpRequest::getBody() const
 {
     return body;
+}
+
+const std::string& HttpRequest::getFinalPath() const
+{
+    return finalPath;
 }
 
 short HttpRequest::getRedirectCode() const

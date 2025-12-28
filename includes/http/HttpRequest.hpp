@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/26 18:14:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/27 21:34:54 by dikhalil         ###   ########.fr       */
+/*   Created: 2025/12/28 23:31:33 by dikhalil          #+#    #+#             */
+/*   Updated: 2025/12/29 00:00:14 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,15 @@
 #include "ConfigValidator.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <string>
+#include <cstdio>
 
 enum RequestStatus
 {
     REQ_OK = 200,
+    REQ_DELETE = 204,
     REQ_UPLOAD = 210,
     REQ_CGI = 220, 
     REQ_AUTOINDEX = 230,
@@ -46,13 +50,13 @@ class HttpRequest
         const std::string request;
         std::string _localIp;
         int _localPort;
-
+        
         const LocationConfig *location;
         ServerConfig *server;
         short redirectCode;
         std::string redirectUri;
         std::string finalPath;
-
+        
         std::string method;
         std::string uri;
         std::string httpVersion;
@@ -60,10 +64,54 @@ class HttpRequest
         std::string body;
         
         RequestStatus status;
+            
         bool isFatalStatus();
+        bool isRedirectStatus();
         bool isCgiRequest();
         bool unchunkBody();
+        bool dirExists(const std::string& path);
+        bool fileExists(const std::string& path);
+        bool hasAccess(const std::string& path, int mode);
         void stripCRLFFromBody();
+    
+        RequestStatus parseRequestLine(std::istringstream& stream);
+        
+        RequestStatus parseHeaders(std::istringstream& stream);
+        RequestStatus validateHost();
+        RequestStatus checkRedirection();
+        RequestStatus checkAllowedMethods();
+        
+        RequestStatus validatePath();
+        RequestStatus handleGetRequest(const std::string &root, const std::string& path,
+             bool isDir, bool isFile);        
+        RequestStatus handleDeleteRequest(const std::string& path, bool isDir, bool isFile);
+        RequestStatus handlePostRequest();
+        RequestStatus checkIndexFiles(const std::string& dirPath);
+        RequestStatus validateContentLength();
+        RequestStatus validateChunkedEncoding();
+        std::string extractFileNameFromUri();
+            RequestStatus handleCgiRequest();
+        void setErrorPagePath();
+        template<typename T>
+        bool findErrorPage(const T* block, int status, const std::string& root, std::string& outPath)
+        {
+            if (!block)
+                return false;
+            typename std::map<int, std::string>::const_iterator it = block->ctx.errorPages.find(status);
+            if (it != block->ctx.errorPages.end()) {
+                outPath = root;
+                std::string pagePath = it->second;
+                if (!outPath.empty() && outPath[outPath.size() - 1] == '/' && !pagePath.empty() && pagePath[0] == '/')
+                    pagePath = pagePath.substr(1);
+                else if (!pagePath.empty() && pagePath[0] != '/' && (!outPath.empty() && outPath[outPath.size() - 1] != '/'))
+                    outPath += "/";
+                outPath += pagePath;
+                if (fileExists(outPath) && hasAccess(outPath, R_OK))
+                    return true;
+            }
+            return false;
+        }
+        
     public:
         HttpRequest(const HttpConfig& config, const std::string& reqStr,
                     const std::string& localIp, int localPort);
@@ -77,6 +125,7 @@ class HttpRequest
         const std::string& getHttpVersion() const;
         const std::map<std::string, std::string>& getHeaders() const;
         const std::string& getBody() const;
+        const std::string& getFinalPath() const;
         short getRedirectCode() const;
         const std::string& getRedirectUri() const;
         const RequestStatus &getStatus() const;
