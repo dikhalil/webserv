@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/28 23:31:33 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/29 00:00:14 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/29 18:54:39 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string>
+#include <dirent.h>
 #include <cstdio>
 
 enum RequestStatus
@@ -73,7 +74,7 @@ class HttpRequest
         bool fileExists(const std::string& path);
         bool hasAccess(const std::string& path, int mode);
         void stripCRLFFromBody();
-    
+
         RequestStatus parseRequestLine(std::istringstream& stream);
         
         RequestStatus parseHeaders(std::istringstream& stream);
@@ -83,7 +84,9 @@ class HttpRequest
         
         RequestStatus validatePath();
         RequestStatus handleGetRequest(const std::string &root, const std::string& path,
-             bool isDir, bool isFile);        
+             bool isDir, bool isFile);
+        RequestStatus deleteEntry(const std::string &path);
+        RequestStatus deleteDir(const std::string &dirPath);
         RequestStatus handleDeleteRequest(const std::string& path, bool isDir, bool isFile);
         RequestStatus handlePostRequest();
         RequestStatus checkIndexFiles(const std::string& dirPath);
@@ -98,13 +101,12 @@ class HttpRequest
             if (!block)
                 return false;
             typename std::map<int, std::string>::const_iterator it = block->ctx.errorPages.find(status);
-            if (it != block->ctx.errorPages.end()) {
-                outPath = root;
+            if (it != block->ctx.errorPages.end())
+            {
+                outPath = addSlash(root);
                 std::string pagePath = it->second;
-                if (!outPath.empty() && outPath[outPath.size() - 1] == '/' && !pagePath.empty() && pagePath[0] == '/')
+                if (!pagePath.empty() && pagePath[0] == '/')
                     pagePath = pagePath.substr(1);
-                else if (!pagePath.empty() && pagePath[0] != '/' && (!outPath.empty() && outPath[outPath.size() - 1] != '/'))
-                    outPath += "/";
                 outPath += pagePath;
                 if (fileExists(outPath) && hasAccess(outPath, R_OK))
                     return true;

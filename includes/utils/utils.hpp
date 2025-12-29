@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 20:27:57 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/20 23:06:02 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/29 18:54:24 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,5 +18,6 @@
 
 unsigned long strToUL(const std::string& str);
 std::string trim(const std::string& line);
+std::string addSlash(const std::string& path);
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 20:24:25 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/20 23:06:17 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/29 18:57:48 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,4 +27,11 @@ std::string trim(const std::string& line)
         return "";
     size_t last = line.find_last_not_of(" \t");
     return line.substr(first, last - first + 1);
+}
+
+std::string addSlash(const std::string& path)
+{
+    if (!path.empty() && path[path.length() - 1] != '/')
+        return path + "/";
+    return path;
 }

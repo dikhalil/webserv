@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/28 20:23:27 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/29 19:10:51 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ void ConfigContext::applyDefaults()
         int code = supportedErrorCodes[i];
         if (errorPages.find(code) == errorPages.end()) {
             std::ostringstream oss;
-            oss << root << "/html/error_pages/" << code << ".html";
+            oss  << "/html/error_pages/" << code << ".html";
             errorPages[code] = oss.str();
         }
     }
