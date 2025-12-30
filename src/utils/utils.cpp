@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 20:24:25 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/29 18:57:48 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/30 23:20:19 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,9 +29,66 @@ std::string trim(const std::string& line)
     return line.substr(first, last - first + 1);
 }
 
-std::string addSlash(const std::string& path)
+std::string addSlash(const std::string& path, const std::string& next)
 {
-    if (!path.empty() && path[path.length() - 1] != '/')
-        return path + "/";
-    return path;
+    if (path.empty()) return next;
+    if (!next.empty() && next[0] == '/') return path + next;
+    if (path[path.length() - 1] == '/') return path + next;
+    return path + "/" + next;
+}
+
+std::string joinPath(const std::string& a, const std::string& b)
+{
+    if (a.empty()) return b;
+    if (b.empty()) return a;
+    std::string left = a;
+    std::string right = b;
+    while (!left.empty() && left[left.length() - 1] == '/')
+        left = left.substr(0, left.length() - 1);
+    while (!right.empty() && right[0] == '/')
+        right = right.substr(1);
+    return left + "/" + right;
+}
+
+bool dirExists(const std::string& path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+bool fileExists(const std::string& path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
+
+bool hasAccess(const std::string& path, int mode)
+{
+    return access(path.c_str(), mode) == 0;
+}
+
+std::string buildPath(const std::string& root, const std::string& locationPath, const std::string& uri)
+{
+    std::string uriNoPrefix = uri;
+    if (!locationPath.empty() && uri.find(locationPath) == 0)
+    {
+        uriNoPrefix = uri.substr(locationPath.length());
+        if (uriNoPrefix.empty())
+            uriNoPrefix = "/";
+    }
+    if (!uriNoPrefix.empty() && uriNoPrefix[0] == '/' && uriNoPrefix != "/")
+        uriNoPrefix = uriNoPrefix.substr(1);
+    if (root[root.size() - 1] == '/')
+        return root + uriNoPrefix;
+    return root + "/" + uriNoPrefix;
+}
+
+void stripCRLF(std::string& body)
+{
+    size_t pos = 0;
+    while ((pos = body.find("\r\n", pos)) != std::string::npos)
+    {
+        body.erase(pos, 1);
+        pos++;
+    }
 }

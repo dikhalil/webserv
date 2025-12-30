@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/29 19:10:51 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/30 21:57:26 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,8 +148,8 @@ bool ServerConfig::operator()(ConfigParser* parser, const std::string& directive
     return false;
 }
 
-ServerConfig* HttpConfig::findServerByHost(const std::string& hostHeader,
-    std::string& localIp, int localPort) const
+const ServerConfig* HttpConfig::findServerByHost(const std::string& hostHeader,
+    const std::string& localIp, const int localPort) const
 {
     std::string hostname = hostHeader;
     size_t colonPos = hostHeader.find(':');

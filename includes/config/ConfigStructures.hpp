@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:38:58 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/28 17:33:43 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/30 21:57:45 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,8 +75,8 @@ struct HttpConfig
     
     HttpConfig();
     void createDefaultConfig();
-    ServerConfig* findServerByHost(const std::string& hostHeader,
-                                   std::string& localIp, int localPort) const;
+    const ServerConfig* findServerByHost(const std::string& hostHeader,
+                                   const std::string& localIp, const int localPort) const;
     bool operator()(class ConfigParser* parser, const std::string& directive);
 };
 
