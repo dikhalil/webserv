@@ -6,6 +6,8 @@ print()  # end headers
 print("Hello from CGI!")
 print("REQUEST_METHOD =", os.environ.get("REQUEST_METHOD"))
 print("QUERY_STRING  =", os.environ.get("QUERY_STRING"))
+for i in range(100000000000000000000000000000000000):
+  print(i)
 # raise Exception("Error message")
 # read POST body if present
 if os.environ.get("REQUEST_METHOD") == "POST":

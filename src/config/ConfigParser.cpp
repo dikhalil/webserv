@@ -3,16 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
+/*   By: rsrour <rsrour@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:36:34 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/28 18:56:14 by dikhalil         ###   ########.fr       */
+/*   Updated: 2026/02/19 23:22:17 by rsrour           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigParser.hpp"
 
 ConfigParser::ConfigParser() {}
+
+ConfigParser::~ConfigParser() {}
 
 void ConfigParser::parse(const std::string& filename)
 {
@@ -107,17 +109,24 @@ void ConfigParser::parseLocation(ServerConfig& server)
 
 bool ConfigParser::parseLocDirective(const std::string& directive, LocationConfig& location)
 {
-    if (directive == "methods" || directive == "cgi_ext")
-        parseString(directive, (directive == "methods" ? &location.allowedMethods : &location.cgiExtensions));
-    else if (directive == "return")
-        parseReturn(location);
-    else if (directive == "upload" || directive == "cgi")
-        parseBool(directive, (directive == "upload" ? location.uploadEnabled : location.cgiEnabled));
-    else if (directive == "upload_path")
-        parseString("upload_path", NULL, &location.uploadPath);
-    else
-        return false;
-    return true;
+	if (directive == "methods" || directive == "cgi_ext")
+		parseString(directive, (directive == "methods" ? &location.allowedMethods : &location.cgiExtensions));
+	else if (directive == "return")
+		parseReturn(location);
+	else if (directive == "upload" || directive == "cgi")
+	{
+		if (directive == "upload")
+			parseBool(directive, location.uploadEnabled);
+		else
+		{
+			parseBool(directive, location.cgiEnabled);
+		}
+	}
+	else if (directive == "upload_path")
+		parseString("upload_path", NULL, &location.uploadPath);
+	else
+		return false;
+	return true;
 }
 
 void ConfigParser::parseBodySize(ConfigContext& ctx)
@@ -232,16 +241,16 @@ void ConfigParser::parseString(const std::string& directive, std::vector<std::st
 
 void ConfigParser::parseBool(const std::string& directive, int& target)
 {
-    tokenizer.consume();
-    std::string val = getValue(directive);
-    if (val == "on")
-        target = 1;
-    else if (val == "off")
-        target = 0;
-    else
-        throw std::runtime_error("Invalid value for " + directive + ": " + val 
-            + ". Expected 'on' or 'off'.");
-    tokenizer.expect(";");
+	tokenizer.consume();
+	std::string val = getValue(directive);
+	if (val == "on")
+		target = 1;
+	else if (val == "off")
+		target = 0;
+	else
+		throw std::runtime_error("Invalid value for " + directive + ": " + val 
+				+ ". Expected 'on' or 'off'.");
+	tokenizer.expect(";");
 }
 
 int ConfigParser::parsePort(const std::string& port) const

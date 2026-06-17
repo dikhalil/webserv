@@ -6,7 +6,7 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/30 16:44:42 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/30 16:45:24 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/31 15:53:31 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,8 @@
 enum RequestStatus
 {
     REQ_OK = 200,
-    REQ_DELETE = 204,
-    REQ_UPLOAD = 210,
-    REQ_CGI = 220, 
-    REQ_AUTOINDEX = 230,
+    REQ_CREATED = 201,
+    REQ_NO_CONTENT = 204,
     REQ_MULTIPLE_CHOICES = 300,
     REQ_MOVED_PERMANENTLY = 301,
     REQ_FOUND = 302,
@@ -31,5 +29,6 @@ enum RequestStatus
     REQ_URI_TOO_LONG = 414,
     REQ_INTERNAL_SERVER_ERROR = 500, 
     REQ_NOT_IMPLEMENTED = 501,
+    REQ_GATEWAY_TIMEOUT = 504,
     REQ_VERSION_NOT_SUPPORTED = 505
 };

@@ -6,18 +6,32 @@
 /*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/20 20:24:25 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/30 23:20:19 by dikhalil         ###   ########.fr       */
+/*   Updated: 2025/12/31 18:49:43 by dikhalil         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "utils.hpp"
+#include <cstdlib>
+#include <cerrno>
+
+std::string intToString(int value) {
+    std::stringstream ss;
+    ss << value;
+    return ss.str();
+}
 
 unsigned long strToUL(const std::string& str)
 {
-    std::istringstream iss(str);
-    unsigned long value = 0;
-    iss >> value;
-    return value;
+    std::string s = trim(str);
+    if (s.empty())
+        return 0;
+    const char* cstr = s.c_str();
+    char* endptr = NULL;
+    errno = 0;
+    unsigned long val = std::strtoul(cstr, &endptr, 10);
+    if (endptr == cstr)
+        return 0;
+    return val;
 }
 
 std::string trim(const std::string& line)
@@ -27,14 +41,6 @@ std::string trim(const std::string& line)
         return "";
     size_t last = line.find_last_not_of(" \t");
     return line.substr(first, last - first + 1);
-}
-
-std::string addSlash(const std::string& path, const std::string& next)
-{
-    if (path.empty()) return next;
-    if (!next.empty() && next[0] == '/') return path + next;
-    if (path[path.length() - 1] == '/') return path + next;
-    return path + "/" + next;
 }
 
 std::string joinPath(const std::string& a, const std::string& b)
@@ -91,4 +97,12 @@ void stripCRLF(std::string& body)
         body.erase(pos, 1);
         pos++;
     }
+}
+
+bool isValidFileName(std::string& fileName)
+{
+    if (fileName.empty() || fileName[fileName.size() - 1] == '/' ||
+        fileName.find('.') == std::string::npos)
+        return false;
+    return true;
 }

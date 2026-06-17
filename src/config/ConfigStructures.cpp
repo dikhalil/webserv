@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigStructures.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
+/*   By: rsrour <rsrour@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/16 20:44:23 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/30 21:57:26 by dikhalil         ###   ########.fr       */
+/*   Updated: 2026/02/19 23:28:07 by rsrour           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #include "ConfigParser.hpp"
 
 ConfigContext::ConfigContext() : autoIndex(-1) {}
+
+ConfigContext::~ConfigContext() {}
 
 void ConfigContext::inheritFrom(const ConfigContext& parent)
 {
@@ -64,6 +66,8 @@ ListenConfig::ListenConfig() : port(8080)
     host = "0.0.0.0";
 }
 
+ListenConfig::~ListenConfig() {}
+
 bool ListenConfig::operator==(const ListenConfig& other) const
 {
     return (host == other.host && port == other.port);
@@ -71,13 +75,20 @@ bool ListenConfig::operator==(const ListenConfig& other) const
 
 LocationConfig::LocationConfig() : redirectCode(0), uploadEnabled(0), cgiEnabled(0) {}
 
+LocationConfig::~LocationConfig() {}
+
 ServerConfig::ServerConfig()
 {
     ListenConfig defaultListen;
     listen.push_back(defaultListen);
 }
 
+ServerConfig::~ServerConfig() {}
+
 HttpConfig::HttpConfig() {}
+
+HttpConfig::~HttpConfig() {}
+
 
 void LocationConfig::applyDefaults()
 {
@@ -180,33 +191,40 @@ const ServerConfig* HttpConfig::findServerByHost(const std::string& hostHeader,
     return NULL;
 }
 
-const LocationConfig* ServerConfig::findLocationByUri(const std::string& uri) const
+const LocationConfig *ServerConfig::findLocationByUri(const std::string &uri) const
 {
-    const LocationConfig *bestMatch = NULL;
-    const LocationConfig *defaultMatch = NULL;
-    size_t bestLength = 0;
+	std::string cleanUri = uri;
+	size_t queryPos = cleanUri.find('?');
+	if (queryPos != std::string::npos)
+		cleanUri = cleanUri.substr(0, queryPos);
 
-    for (size_t i = 0; i < locations.size(); i++)
-    {
-        const LocationConfig& loc = locations[i];
-        const std::string& path = loc.path;
-        if (path == "/")
-            defaultMatch = &loc;
-        if (uri == path)
-            return &loc;
-        if (uri.compare(0, path.length(), path) == 0 && path.length() > bestLength)
-        {
-            if (uri.length() != path.length() && uri[path.length()] != '/')
-                continue;
-            bestLength = path.length();
-            bestMatch = &loc;
-        }
-    }
-    if (bestMatch)
-        return bestMatch;
-    if (defaultMatch)
-        return defaultMatch;
-    return NULL;
+	const LocationConfig *bestMatch = NULL;
+	const LocationConfig *defaultMatch = NULL;
+	size_t bestLength = 0;
+
+	for (size_t i = 0; i < locations.size(); i++)
+	{
+		const LocationConfig& loc = locations[i];
+		const std::string& path = loc.path;
+		if (path == "/")
+				defaultMatch = &loc;
+		if (cleanUri == path)
+				return &loc;
+		if (cleanUri.compare(0, path.length(), path) == 0 && path.length() > bestLength)
+		{
+			bestLength = path.length();
+			bestMatch = &loc;
+		}
+	}
+	if (bestMatch)
+	{
+		return bestMatch;
+	}
+	if (defaultMatch)
+	{
+		return defaultMatch;
+	}
+	return NULL;
 }
 
 bool LocationConfig::operator()(ConfigParser* parser, const std::string& directive)

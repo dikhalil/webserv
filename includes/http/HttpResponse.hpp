@@ -1,39 +1,35 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   HttpResponse.hpp                                   :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: dikhalil <dikhalil@student.42amman.com>    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/26 18:20:42 by dikhalil          #+#    #+#             */
-/*   Updated: 2025/12/26 18:21:33 by dikhalil         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#ifndef HTTP_RESPONSE_HPP
-#define HTTP_RESPONSE_HPP
-
+#pragma once
+#include <string>
 #include "HttpRequest.hpp"
 
 class HttpResponse
 {
-    public:
-        HttpResponse();
-        ~HttpResponse();
+private:
+	std::string fullResponse;
+	std::string path;
+	std::string header;
+	std::string body;
+	int codeStatus;
+	std::string buildTree(const std::string &path, const std::string &uri);
+	std::string contentOfFile;
+	bool fileIsComplete;
 
-        void setStatus(int status);
-        int getStatus() const;
-
-        void setHeader(const std::string& name, const std::string& value);
-        std::string getHeader(const std::string& name) const;
-
-        void setBody(const std::string& body);
-        std::string getBody() const;
-
-    private:
-        int status;
-        std::map<std::string, std::string> headers;
-        std::string body;
+public:
+	HttpResponse();
+	~HttpResponse() {}
+	bool canReadBody() const;
+	void buildResponse(HttpResponse &response, HttpRequest &req);
+	std::string getStatusMsg(int code);
+	void fileToString(HttpResponse &response, HttpRequest &req, std::string path);
+	std::string getContentType(std::string path);
+	std::string getHeader() const;
+	std::string getBody() const;
+	std::string getPath() const;
+	int getCodeStatus() const;
+	void setCodeStatus(int input);
+	void buildCgiResponse(HttpRequest &req);
+	std::string getFullResponse() const;
+	std::string generateAutoIndex(const std::string &path, const std::string &uri);
 };
 
-#endif 
+std::ostream &operator<<(std::ostream &out, const HttpResponse &data);
